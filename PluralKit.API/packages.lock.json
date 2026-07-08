@@ -464,6 +464,11 @@
           "System.IO.Pipelines": "5.0.1"
         }
       },
+      "Serilog": {
+        "type": "Transitive",
+        "resolved": "4.1.0",
+        "contentHash": "u1aZI8HZ62LWlq5dZLFwm6jMax/sUwnWZSw5lkPsCt518cJBxFKoNmc7oSxe5aA5BgSkzy9rzwFGR/i/acnSPw=="
+      },
       "Serilog.Extensions.Hosting": {
         "type": "Transitive",
         "resolved": "8.0.0",
@@ -835,7 +840,6 @@
           "NodaTime.Serialization.JsonNet": "[3.1.0, )",
           "Npgsql": "[9.0.2, )",
           "Npgsql.NodaTime": "[9.0.2, )",
-          "Serilog": "[4.1.0, )",
           "Serilog.Extensions.Logging": "[8.0.0, )",
           "Serilog.Formatting.Compact": "[3.0.0, )",
           "Serilog.NodaTime": "[3.0.0, )",
@@ -850,9 +854,6 @@
           "System.Interactive.Async": "[6.0.1, )",
           "ipnetwork2": "[3.0.667, )"
         }
-      },
-      "serilog": {
-        "type": "Project"
       }
     }
   }

@@ -30,6 +30,11 @@ public class ApplicationCommandSay
         if (ctx.Event.GuildId == 0)
             throw new PKError("The /s command only works in servers.");
 
+        // Sending through a webhook doesn't itself acknowledge the interaction, so defer
+        // immediately to stay within Discord's 3-second deadline. Any error after this point
+        // edits the deferred ephemeral reply, and we delete it once the message is sent.
+        await ctx.Defer();
+
         var text = GetOptionalStringOption(ctx.Event.Data?.Options, "text");
         if (text.Length > 2000)
             throw new PKError("Message text cannot be longer than 2000 characters.");
@@ -90,7 +95,14 @@ public class ApplicationCommandSay
             Tts = false,
             Poll = null,
         });
-        _sentMessages.Track(sent.Id, ctx.User.Id);
+        await ctx.Repository.AddCommandMessage(new PluralKit.Core.CommandMessage
+        {
+            Mid = sent.Id,
+            Guild = ctx.GuildId,
+            Channel = sent.ChannelId,
+            Sender = ctx.User.Id,
+            OriginalMid = ctx.Event.Id
+        });
         try
         {
             await ctx.DeleteReply();

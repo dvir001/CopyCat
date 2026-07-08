@@ -484,7 +484,7 @@ public class ApplicationCommandTts
                     if (member != null)
                         name = member.Nick ?? member.User.GlobalName ?? member.User.Username;
                 }
-                catch { /* ignore, keep original token */ }
+                catch { /* ignore, keep the empty default so the mention is stripped */ }
             }
 
             replacements[m.Value] = name;

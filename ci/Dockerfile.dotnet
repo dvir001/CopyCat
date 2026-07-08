@@ -45,11 +45,13 @@ RUN mkdir -p /app/bin/Tools/Tts/vendors \
     && git clone --depth 1 https://github.com/n0spaces/MorshuTalk /app/bin/Tools/Tts/vendors/MorshuTalk \
     && git clone --depth 1 https://github.com/ASp2004/TiberianSunCABAL-Talk /app/bin/Tools/Tts/vendors/TiberianSunCABAL-Talk
 
-# Copy the CABAL game audio assets and write config.yaml so the generator finds them.
-# The .aud files must be present in PluralKit.Bot/Tools/Tts/cabal_audio/ at build time.
-# Missing files (01-n400.aud, nod-02.aud, nod-07b.aud) will cause CABAL to fail at runtime.
-COPY PluralKit.Bot/Tools/Tts/cabal_audio/ /app/cabal_audio/
-RUN printf 'speech02: /app/cabal_audio\ne01vox01: /app/cabal_audio\nsidecd02: /app/cabal_audio\n' \
+# The CABAL game audio assets are copyright-encumbered and are NOT baked into the image.
+# They are gitignored and absent from the build context, so we only create the target
+# directory and write config.yaml pointing at it. Provide the .aud files at runtime by
+# bind-mounting them into /app/cabal_audio (e.g. 01-n400.aud, nod-02.aud, nod-07b.aud);
+# without them the CABAL voice will fail at runtime while the rest of the image still builds.
+RUN mkdir -p /app/cabal_audio \
+    && printf 'speech02: /app/cabal_audio\ne01vox01: /app/cabal_audio\nsidecd02: /app/cabal_audio\n' \
     > /app/bin/Tools/Tts/vendors/TiberianSunCABAL-Talk/tibsuncabal_talk/config.yaml
 
 # Piper voice models are NOT baked into the image. Instead they are downloaded at

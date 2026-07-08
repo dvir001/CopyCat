@@ -129,6 +129,8 @@ public class BotModule: Module
 
         // Application commands
         builder.RegisterType<ApplicationCommandTree>().AsSelf();
+        builder.RegisterType<ApplicationCommandSay>().AsSelf();
+        builder.RegisterType<ApplicationCommandTts>().AsSelf();
         builder.RegisterType<ApplicationCommandProxiedMessage>().AsSelf();
 
         // Bot core
@@ -159,6 +161,7 @@ public class BotModule: Module
         builder.RegisterType<ErrorMessageService>().AsSelf().SingleInstance();
         builder.RegisterType<CommandMessageService>().AsSelf().SingleInstance();
         builder.RegisterType<InteractionDispatchService>().AsSelf().SingleInstance();
+        builder.RegisterType<TtsVoiceService>().AsSelf().SingleInstance();
         builder.RegisterType<AvatarHostingService>().AsSelf().SingleInstance();
         builder.RegisterType<HttpListenerService>().AsSelf().SingleInstance();
         builder.RegisterType<RuntimeConfigService>().AsSelf().SingleInstance();

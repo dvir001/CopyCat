@@ -14,6 +14,7 @@ tags/
 .DS_Store
 mono_crash*
 .DotSettings
+*.code-workspace
 
 # Dependencies
 node_modules/
@@ -35,3 +36,6 @@ recipe.json
 # nix
 .nix-process-compose
 result
+
+# CABAL game audio assets (copyrighted, supply manually)
+PluralKit.Bot/Tools/Tts/cabal_audio/

@@ -32,6 +32,17 @@ public class InteractionCreated: IEventHandler<InteractionCreateEvent>
 
     public async Task Handle(int shardId, InteractionCreateEvent evt)
     {
+        // Autocomplete fires on every keystroke and doesn't need system/config data.
+        // Skip the two DB lookups below so the dropdown stays responsive.
+        if (evt.Type == Interaction.InteractionType.ApplicationCommandAutocomplete)
+        {
+            var fastCtx = new InteractionContext(_services, evt, null, null);
+            var autocompleteResFast = _commandTree.TryHandleAutocomplete(fastCtx);
+            if (autocompleteResFast != null)
+                await autocompleteResFast;
+            return;
+        }
+
         var system = await _repo.GetSystemByAccount(evt.Member?.User.Id ?? evt.User!.Id);
         var config = system != null ? await _repo.GetSystemConfig(system!.Id) : null;
         var ctx = new InteractionContext(_services, evt, system, config);
@@ -60,6 +71,28 @@ public class InteractionCreated: IEventHandler<InteractionCreateEvent>
 
                 // got some unhandled command, log and ignore
                 _logger.Warning(@"Unhandled ApplicationCommand interaction: {EventId} {CommandName}", evt.Id, evt.Data?.Name);
+                break;
+
+            case Interaction.InteractionType.ModalSubmit:
+                var modalRes = _commandTree.TryHandleModalSubmit(ctx);
+                if (modalRes != null)
+                {
+                    await modalRes;
+                    return;
+                }
+
+                _logger.Warning(@"Unhandled ModalSubmit: {EventId} {CustomId}", evt.Id, evt.Data?.CustomId);
+                break;
+
+            case Interaction.InteractionType.ApplicationCommandAutocomplete:
+                var autocompleteRes = _commandTree.TryHandleAutocomplete(ctx);
+                if (autocompleteRes != null)
+                {
+                    await autocompleteRes;
+                    return;
+                }
+
+                _logger.Warning(@"Unhandled ApplicationCommandAutocomplete interaction: {EventId} {CommandName}", evt.Id, evt.Data?.Name);
                 break;
         }
         ;

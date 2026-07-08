@@ -15,6 +15,13 @@ public record MessageComponent
     public ComponentMedia? Media { get; init; }
     public ComponentMediaItem[]? Items { get; init; }
 
+    // Text input fields
+    public string? Value { get; init; }
+    public string? Placeholder { get; init; }
+    public bool? Required { get; init; }
+    public int? MinLength { get; init; }
+    public int? MaxLength { get; init; }
+
     public MessageComponent? Accessory { get; init; }
     public MessageComponent[]? Components { get; init; }
 }

@@ -107,7 +107,7 @@ public class ApplicationCommandProxiedMessage
     internal async Task DeleteMessageInner(InteractionContext ctx, ulong guildId, ulong channelId, ulong messageId, bool isDM = false)
     {
         if (!((await _cache.BotPermissionsIn(guildId, channelId)).HasFlag(PermissionSet.ManageMessages) || isDM))
-            throw new PKError("PluralKit does not have the *Manage Messages* permission in this channel, and thus cannot delete the message."
+            throw new PKError("CopyCat does not have the *Manage Messages* permission in this channel, and thus cannot delete the message."
                 + " Please contact a server administrator to remedy this.");
 
         await ctx.Rest.DeleteMessage(channelId, messageId);

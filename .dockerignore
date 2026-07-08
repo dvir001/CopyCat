@@ -15,6 +15,8 @@
 !PluralKit.sln
 !nuget.config
 !ci/dotnet-version.sh
+!ci/download-piper-voices.sh
+!ci/entrypoint.sh
 
 # used for target binary builds
 !.docker-bin/
@@ -24,6 +26,7 @@
 **/obj
 **/target
 **/node_modules
+piper_voices/
 
 # don't clear docker cache when updating dockerfiles
 Dockerfile

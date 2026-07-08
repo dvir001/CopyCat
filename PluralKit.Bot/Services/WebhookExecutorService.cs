@@ -41,10 +41,12 @@ public record ProxyRequest
     public string? AvatarUrl { get; init; }
     public string? Content { get; init; }
     public Message.Attachment[] Attachments { get; init; }
+    public MultipartFile[]? GeneratedFiles { get; init; }
     public int FileSizeLimit { get; init; }
     public Embed[] Embeds { get; init; }
     public Sticker[] Stickers { get; init; }
     public bool AllowEveryone { get; init; }
+    public Message.Reference? MessageReference { get; init; }
     public Message.MessageFlags? Flags { get; init; }
     public bool Tts { get; init; }
     public Message.MessagePoll? Poll { get; init; }
@@ -135,6 +137,7 @@ public class WebhookExecutorService
             Username = req.Name.FixProxyName().Truncate(80),
             Content = content,
             AllowedMentions = allowedMentions,
+            MessageReference = req.MessageReference,
             AvatarUrl = !string.IsNullOrWhiteSpace(req.AvatarUrl) ? req.AvatarUrl : null,
             Embeds = req.Embeds,
             Stickers = req.Stickers,
@@ -142,7 +145,8 @@ public class WebhookExecutorService
             Tts = req.Tts,
         };
 
-        MultipartFile[] files = null;
+        var generatedFiles = req.GeneratedFiles ?? Array.Empty<MultipartFile>();
+        MultipartFile[] files = generatedFiles;
         var attachmentChunks = ChunkAttachmentsOrThrow(req.Attachments, req.FileSizeLimit);
         if (attachmentChunks.Count > 0)
         {
@@ -150,10 +154,15 @@ public class WebhookExecutorService
                 "Invoking webhook with {AttachmentCount} attachments totalling {AttachmentSize} MiB in {AttachmentChunks} chunks",
                 req.Attachments.Length, req.Attachments.Select(a => a.Size).Sum() / 1024 / 1024,
                 attachmentChunks.Count);
-            files = await GetAttachmentFiles(attachmentChunks[0]);
-            webhookReq.Attachments = files.Select(f => new AttachmentRequest
+            var fetchedFiles = await GetAttachmentFiles(attachmentChunks[0]);
+            files = fetchedFiles.Concat(generatedFiles).ToArray();
+        }
+
+        if (files.Length > 0)
+        {
+            webhookReq.Attachments = files.Select((f, idx) => new AttachmentRequest
             {
-                Id = (ulong)Array.IndexOf(files, f),
+                Id = (ulong)idx,
                 Description = f.Description,
                 Filename = f.Filename,
                 Waveform = f.Waveform,

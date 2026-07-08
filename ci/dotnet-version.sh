@@ -1,6 +1,6 @@
 #!/bin/sh
 
-rm ../.version || true
+rm -f ../.version
 touch ../.version
 git rev-parse HEAD >> ../.version
 git show --no-patch --format=%at $(git rev-parse HEAD) >> ../.version

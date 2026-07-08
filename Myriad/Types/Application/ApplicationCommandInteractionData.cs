@@ -15,5 +15,6 @@ public record ApplicationCommandInteractionData
     {
         public Dictionary<ulong, Message>? Messages { get; init; }
         public Dictionary<ulong, User>? Users { get; init; }
+        public Dictionary<ulong, Message.Attachment>? Attachments { get; init; }
     }
 }

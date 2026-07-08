@@ -55,7 +55,7 @@ public class Bot
         _runtimeConfig = runtimeConfig;
     }
 
-    private string BotStatus => $"{(_config.Prefixes ?? BotConfig.DefaultPrefixes)[0]}help"
+    private string BotStatus => "Use /s and /tts"
         + (CustomStatusMessage != null ? $" | {CustomStatusMessage}" : "");
     public string CustomStatusMessage = null;
 

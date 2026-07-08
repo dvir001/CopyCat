@@ -1,6 +1,5 @@
-version: "3"
-
 services:
+
   migrate:
     build:
       context: .
@@ -13,7 +12,9 @@ services:
       - pluralkit__db__data_db_uri=postgresql://postgres:postgres@db:5432/postgres
       - pluralkit__db__data_redis_addr=1
     command: ["/migrate"]
-    depends_on: ["db"]
+    depends_on:
+      db:
+        condition: service_healthy
 
   register-commands:
     build:
@@ -90,6 +91,12 @@ services:
     environment:
       - "POSTGRES_PASSWORD=postgres"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   redis:
     image: redis:alpine
@@ -97,3 +104,4 @@ services:
 
 volumes:
   db_data:
+  piper_voices:

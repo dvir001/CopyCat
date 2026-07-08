@@ -15,12 +15,12 @@ public static class BuildInfoService
         using var reader = new StreamReader(stream);
         var data = (await reader.ReadToEndAsync()).Split("\n");
 
-        FullVersion = data[0];
-        Timestamp = data[1];
+        FullVersion = data.Length > 0 && data[0].Length > 0 ? data[0] : "dev";
+        Timestamp = data.Length > 1 ? data[1] : "0";
 
         IsDev = data.Length < 3 || data[2] == "";
 
         // show only short commit hash to users
-        Version = FullVersion.Remove(7);
+        Version = FullVersion.Length >= 7 ? FullVersion.Remove(7) : FullVersion;
     }
 }

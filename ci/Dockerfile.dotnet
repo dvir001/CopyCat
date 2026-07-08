@@ -14,8 +14,11 @@ RUN dotnet restore PluralKit.sln
 
 # Copy the rest of the code and build
 COPY . /app
-RUN sed -i 's/\r$//' /app/ci/dotnet-version.sh
-RUN chmod +x /app/ci/dotnet-version.sh
+RUN sed -i 's/\r$//' /app/ci/dotnet-version.sh \
+    && chmod +x /app/ci/dotnet-version.sh \
+    && (apt-get update -qq && apt-get install -y --no-install-recommends git \
+        && cd /app && sh ci/dotnet-version.sh) \
+    || printf 'dev\n0\n1\n' > /app/.version
 ARG DOTNET_BUILD_MAXCPU=1
 RUN dotnet build PluralKit.Bot/PluralKit.Bot.csproj -c Release -m:${DOTNET_BUILD_MAXCPU} -o bin
 

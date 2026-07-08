@@ -9,7 +9,8 @@ public record InteractionResponse
         DeferredChannelMessageWithSource = 5,
         DeferredUpdateMessage = 6,
         UpdateMessage = 7,
-        ApplicationCommandAutocompleteResult = 8
+        ApplicationCommandAutocompleteResult = 8,
+        Modal = 9
     }
 
     public ResponseType Type { get; init; }

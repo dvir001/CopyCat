@@ -71,7 +71,7 @@ public class ApplicationCommandSay
         if (reply?.PingUserId is { } pingUserId)
             content = string.IsNullOrWhiteSpace(content) ? $"<@{pingUserId}>" : $"<@{pingUserId}> {content}";
 
-        await _webhookExecutor.ExecuteWebhook(new ProxyRequest
+        var sent = await _webhookExecutor.ExecuteWebhook(new ProxyRequest
         {
             GuildId = ctx.GuildId,
             ChannelId = rootChannel.Id,
@@ -90,10 +90,7 @@ public class ApplicationCommandSay
             Tts = false,
             Poll = null,
         });
-
-        await ctx.Reply($"{Emojis.Success} Sent.");
-
-        // Keep /s success flow quiet by removing the ephemeral confirmation immediately.
+        _sentMessages.Track(sent.Id, ctx.User.Id);
         try
         {
             await ctx.DeleteReply();
@@ -334,5 +331,124 @@ public class ApplicationCommandSay
             return $"https://cdn.discordapp.com/avatars/{ctx.User.Id}/{ctx.User.Avatar}.png?size=4096";
 
         return null;
+    }
+
+    // ── "💬 Say as me" message context menu ──────────────────────────────────
+
+    public async Task ShowSayReplyModal(InteractionContext ctx)
+    {
+        if (ctx.Event.GuildId == 0)
+            throw new PKError("The Say command only works in servers.");
+
+        var targetMessageId = ctx.Event.Data?.TargetId
+            ?? throw new PKError("Could not determine the target message.");
+
+        await ctx.RespondModal(
+            $"say-reply:{ctx.ChannelId}:{targetMessageId}",
+            "Say as me",
+            new[]
+            {
+                new MessageComponent
+                {
+                    Type = ComponentType.ActionRow,
+                    Components = new[]
+                    {
+                        new MessageComponent
+                        {
+                            Type = ComponentType.TextInput,
+                            CustomId = "text",
+                            Label = "Message to say",
+                            Style = ButtonStyle.Secondary, // 2 = Paragraph
+                            Required = true,
+                            MaxLength = 2000,
+                            Placeholder = "Type your message\u2026"
+                        }
+                    }
+                }
+            });
+    }
+
+    public async Task HandleSayReplyModal(InteractionContext ctx)
+    {
+        if (ctx.Event.GuildId == 0)
+            throw new PKError("The Say command only works in servers.");
+
+        var customId = ctx.Event.Data?.CustomId ?? "";
+        var parts = customId.Split(':');
+        if (parts.Length != 3 || !ulong.TryParse(parts[1], out var targetChannelId)
+                               || !ulong.TryParse(parts[2], out var targetMessageId))
+            throw new PKError("Invalid modal data.");
+
+        var text = ctx.Event.Data?.Components?
+            .SelectMany(row => row.Components ?? Array.Empty<MessageComponent>())
+            .FirstOrDefault(c => string.Equals(c.CustomId, "text", StringComparison.OrdinalIgnoreCase))
+            ?.Value ?? "";
+
+        if (string.IsNullOrWhiteSpace(text))
+            throw new PKError("Provide text to send.");
+        if (text.Length > 2000)
+            throw new PKError("Message text cannot be longer than 2000 characters.");
+
+        var guild = await _cache.GetGuild(ctx.GuildId);
+        var messageChannel = await _cache.GetOrFetchChannel(ctx.Rest, ctx.GuildId, ctx.ChannelId);
+        var rootChannel = await _cache.GetRootChannel(ctx.GuildId, ctx.ChannelId);
+
+        if (!DiscordUtils.IsValidGuildChannel(messageChannel))
+            throw new PKError("CopyCat cannot send in this channel type.");
+
+        var senderPermissions = PermissionExtensions.PermissionsFor(guild, rootChannel, ctx.User.Id, ctx.Member,
+            isThread: messageChannel.Id != rootChannel.Id);
+        if (!senderPermissions.HasFlag(PermissionSet.SendMessages) &&
+            !(messageChannel.Id != rootChannel.Id && senderPermissions.HasFlag(PermissionSet.SendMessagesInThreads)))
+            throw new PKError("You do not have permission to send messages in this channel.");
+
+        var botPermissions = await _cache.BotPermissionsIn(ctx.GuildId, rootChannel.Id);
+        if (!botPermissions.HasFlag(PermissionSet.SendMessages))
+            throw new PKError("CopyCat does not have permission to send messages in this channel.");
+        if (!botPermissions.HasFlag(PermissionSet.ManageWebhooks))
+            throw new PKError("CopyCat does not have the Manage Webhooks permission in this channel.");
+
+        var threadId = messageChannel.IsThread() ? messageChannel.Id : (ulong?)null;
+        var proxyName = ctx.Member?.Nick ?? ctx.User.GlobalName ?? ctx.User.Username;
+        var avatarUrl = BuildAvatarUrl(ctx);
+
+        var replyTarget = new ReplyTarget(ctx.GuildId, targetChannelId, targetMessageId);
+        var reply = await TryBuildReplyEmbed(ctx, replyTarget);
+        var embeds = reply == null ? Array.Empty<Embed>() : new[] { reply.Embed };
+
+        var content = text;
+        if (reply?.PingUserId is { } pingUserId)
+            content = $"{content}\n-# <@{pingUserId}>";
+
+        var sent = await _webhookExecutor.ExecuteWebhook(new ProxyRequest
+        {
+            GuildId = ctx.GuildId,
+            ChannelId = rootChannel.Id,
+            ThreadId = threadId,
+            MessageId = ctx.Event.Id,
+            Name = proxyName,
+            AvatarUrl = avatarUrl,
+            Content = content,
+            Attachments = Array.Empty<Message.Attachment>(),
+            FileSizeLimit = guild.FileSizeLimit(),
+            Embeds = embeds,
+            Stickers = Array.Empty<Sticker>(),
+            AllowEveryone = senderPermissions.HasFlag(PermissionSet.MentionEveryone),
+            MessageReference = null,
+            Flags = 0,
+            Tts = false,
+            Poll = null,
+        });
+        await ctx.Repository.AddCommandMessage(new PluralKit.Core.CommandMessage
+        {
+            Mid = sent.Id,
+            Guild = ctx.GuildId,
+            Channel = sent.ChannelId,
+            Sender = ctx.User.Id,
+            OriginalMid = ctx.Event.Id
+        });
+
+        await ctx.Reply($"{Emojis.Success} Sent.");
+        try { await ctx.DeleteReply(); } catch { }
     }
 }

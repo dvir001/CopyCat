@@ -73,6 +73,17 @@ public class InteractionCreated: IEventHandler<InteractionCreateEvent>
                 _logger.Warning(@"Unhandled ApplicationCommand interaction: {EventId} {CommandName}", evt.Id, evt.Data?.Name);
                 break;
 
+            case Interaction.InteractionType.ModalSubmit:
+                var modalRes = _commandTree.TryHandleModalSubmit(ctx);
+                if (modalRes != null)
+                {
+                    await modalRes;
+                    return;
+                }
+
+                _logger.Warning(@"Unhandled ModalSubmit: {EventId} {CustomId}", evt.Id, evt.Data?.CustomId);
+                break;
+
             case Interaction.InteractionType.ApplicationCommandAutocomplete:
                 var autocompleteRes = _commandTree.TryHandleAutocomplete(ctx);
                 if (autocompleteRes != null)

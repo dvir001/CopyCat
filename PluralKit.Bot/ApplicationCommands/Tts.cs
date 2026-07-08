@@ -149,7 +149,7 @@ public class ApplicationCommandTts
 
         using var generatedClip = await _tts.GenerateClip(voice.Id, await ResolveMentionsForTts(ctx, text));
 
-        await _webhookExecutor.ExecuteWebhook(new ProxyRequest
+        var sent = await _webhookExecutor.ExecuteWebhook(new ProxyRequest
         {
             GuildId = ctx.GuildId,
             ChannelId = rootChannel.Id,
@@ -168,6 +168,14 @@ public class ApplicationCommandTts
             Flags = 0,
             Tts = false,
             Poll = null,
+        });
+        await ctx.Repository.AddCommandMessage(new PluralKit.Core.CommandMessage
+        {
+            Mid = sent.Id,
+            Guild = ctx.GuildId,
+            Channel = sent.ChannelId,
+            Sender = ctx.User.Id,
+            OriginalMid = ctx.Event.Id
         });
 
         // Remove the deferred ephemeral "thinking" indicator now that the message was sent.

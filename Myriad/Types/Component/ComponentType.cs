@@ -5,6 +5,7 @@ public enum ComponentType
     ActionRow = 1,
     Button = 2,
     StringSelect = 3,
+    TextInput = 4,
     Section = 9,
     Text = 10,
     Thumbnail = 11,

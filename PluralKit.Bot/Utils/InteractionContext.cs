@@ -176,4 +176,15 @@ public class InteractionContext
         var applicationId = _provider.Resolve<BotConfig>().ClientId;
         await Rest.DeleteOriginalInteractionResponse(applicationId, Event.Token);
     }
+
+    public async Task RespondModal(string customId, string title, MessageComponent[] components)
+    {
+        await Respond(InteractionResponse.ResponseType.Modal,
+            new InteractionApplicationCommandCallbackData
+            {
+                CustomId = customId,
+                Title = title,
+                Components = components
+            });
+    }
 }

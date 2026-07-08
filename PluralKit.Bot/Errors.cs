@@ -147,7 +147,7 @@ public static class Errors
         $"The time zone query '{zoneStr}' resulted in **{count}** different time zone regions. Try being more specific - e.g. pass an exact time zone specifier from the following website: <https://xske.github.io/tz>");
 
     public static PKError MessageNotFound(ulong id) =>
-        new($"Message with ID '{id}' not found. Are you sure it's a message proxied by PluralKit?");
+        new($"Message with ID '{id}' not found. Are you sure it's a message sent by CopyCat?");
 
     public static PKError DurationParseError(string durationStr) => new(
         $"Could not parse {durationStr.AsCode()} as a valid duration. Try a format such as `30d`, `1d3h` or `20m30s`.");

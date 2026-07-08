@@ -178,6 +178,17 @@ public class ApplicationCommandTts
             OriginalMid = ctx.Event.Id
         });
 
+        // Track per-user voice usage so the /tts voice autocomplete can default to the caller's
+        // most-used voices. Best-effort — never fail an otherwise-successful send over a stats write.
+        try
+        {
+            await ctx.Repository.IncrementVoiceUsage(ctx.User.Id, voice.Id);
+        }
+        catch
+        {
+            // best-effort usage tracking
+        }
+
         // Remove the deferred ephemeral "thinking" indicator now that the message was sent.
         try
         {
@@ -199,11 +210,38 @@ public class ApplicationCommandTts
         }
 
         var input = focused.Value?.ToString()?.Trim() ?? string.Empty;
-        var matches = VoiceCatalog
-            .Where(v => _tts.IsVoiceAvailable(v.Id))
-            .Where(v => string.IsNullOrWhiteSpace(input)
-                || v.Id.Contains(input, StringComparison.OrdinalIgnoreCase)
-                || v.Name.Contains(input, StringComparison.OrdinalIgnoreCase))
+
+        IEnumerable<VoiceDefinition> ordered;
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            // No input yet: lead with this user's own most-used voices so their favourites are one
+            // keystroke away, then fall back to catalog order for anything they haven't used.
+            IEnumerable<string> mostUsed;
+            try
+            {
+                mostUsed = await ctx.Repository.GetMostUsedVoices(ctx.User.Id, 25);
+            }
+            catch
+            {
+                mostUsed = Array.Empty<string>();
+            }
+
+            ordered = mostUsed
+                .Select(id => VoiceCatalog.FirstOrDefault(v => string.Equals(v.Id, id, StringComparison.OrdinalIgnoreCase)))
+                .Where(v => !string.IsNullOrEmpty(v.Id))
+                .Concat(VoiceCatalog)
+                .Where(v => _tts.IsVoiceAvailable(v.Id))
+                .DistinctBy(v => v.Id);
+        }
+        else
+        {
+            ordered = VoiceCatalog
+                .Where(v => _tts.IsVoiceAvailable(v.Id))
+                .Where(v => v.Id.Contains(input, StringComparison.OrdinalIgnoreCase)
+                    || v.Name.Contains(input, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var matches = ordered
             .Take(25)
             .Select(v => new ApplicationCommandOption.Choice(v.Name.Length > 100 ? v.Name[..100] : v.Name, v.Id))
             .ToArray();

@@ -11,11 +11,15 @@ public record ApplicationCommandOption(ApplicationCommandOption.OptionType Type,
         Boolean = 5,
         User = 6,
         Channel = 7,
-        Role = 8
+        Role = 8,
+        Mentionable = 9,
+        Number = 10,
+        Attachment = 11
     }
 
     public bool Default { get; init; }
     public bool Required { get; init; }
+    public bool Autocomplete { get; init; }
     public Choice[]? Choices { get; init; }
     public ApplicationCommandOption[]? Options { get; init; }
 

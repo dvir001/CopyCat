@@ -231,9 +231,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn scheduled_task(redis: RedisPool, senders: Vec<(ShardId, MessageSender)>) {
-    let prefix = libpk::config.discord().bot_prefix_for_gateway.clone();
-
-    println!("{prefix}");
+    const BASE_STATUS: &str = "Use /s and /tts";
 
     loop {
         tokio::time::sleep(Duration::from_secs(
@@ -254,9 +252,9 @@ async fn scheduled_task(redis: RedisPool, senders: Vec<(ShardId, MessageSender)>
             op: twilight_model::gateway::OpCode::PresenceUpdate,
             d: discord::gateway::presence(
                 if let Some(status) = status {
-                    format!("{prefix}help | {status}")
+                    format!("{BASE_STATUS} | {status}")
                 } else {
-                    format!("{prefix}help")
+                    BASE_STATUS.to_string()
                 }
                 .as_str(),
                 false,

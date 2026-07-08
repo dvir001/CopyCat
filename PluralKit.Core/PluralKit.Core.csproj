@@ -60,7 +60,7 @@
     </ItemGroup>
 
     <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
-        <Exec Command="..\ci\dotnet-version.sh" IgnoreExitCode="False">
+        <Exec Command="sh &quot;$(MSBuildThisFileDirectory)..\ci\dotnet-version.sh&quot;" IgnoreExitCode="False">
         </Exec>
     </Target>
 

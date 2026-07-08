@@ -47,6 +47,11 @@ public class DiscordApiClient
         _client.Get<GuildMember>($"/guilds/{guildId}/members/{userId}",
             ("GetGuildMember", guildId));
 
+    public Task<GuildMember[]?> SearchGuildMembers(ulong guildId, string query, int limit = 5) =>
+        _client.Get<GuildMember[]>(
+            $"/guilds/{guildId}/members/search?query={Uri.EscapeDataString(query)}&limit={limit}",
+            ("SearchGuildMembers", guildId));
+
     public Task<Message[]> GetChannelMessages(ulong channelId, int? limit)
     {
         var url = $"/channels/{channelId}/messages";
@@ -121,6 +126,15 @@ public class DiscordApiClient
     public Task CreateInteractionResponse(ulong interactionId, string token, InteractionResponse response) =>
         _client.Post<object>($"/interactions/{interactionId}/{token}/callback",
             ("CreateInteractionResponse", interactionId), response);
+
+    public Task DeleteOriginalInteractionResponse(ulong applicationId, string token) =>
+        _client.Delete($"/webhooks/{applicationId}/{token}/messages/@original",
+            ("DeleteOriginalInteractionResponse", applicationId));
+
+    public Task<Message?> EditOriginalInteractionResponse(ulong applicationId, string token,
+                                                          WebhookMessageEditRequest request) =>
+        _client.Patch<Message>($"/webhooks/{applicationId}/{token}/messages/@original",
+            ("EditOriginalInteractionResponse", applicationId), request);
 
     public Task ModifyGuildMember(ulong guildId, ulong userId, ModifyGuildMemberRequest request) =>
         _client.Patch<object>($"/guilds/{guildId}/members/{userId}",

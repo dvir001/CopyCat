@@ -6,7 +6,9 @@ using Myriad.Cache;
 using Myriad.Gateway;
 using Myriad.Rest;
 using Myriad.Rest.Types;
+using Myriad.Rest.Types.Requests;
 using Myriad.Types;
+using Myriad.Utils;
 
 using PluralKit.Core;
 
@@ -34,6 +36,11 @@ public class InteractionContext
     internal readonly ModelRepository Repository;
     public readonly PKSystem System;
     public readonly SystemConfig Config;
+
+    // Tracks whether we've already sent an initial interaction response (or deferred).
+    // Once true, further user-facing messages must edit the original response instead
+    // of creating a new one (Discord returns 404 Unknown interaction otherwise).
+    private bool _hasResponded;
 
     public InteractionCreateEvent Event { get; }
 
@@ -66,14 +73,45 @@ public class InteractionContext
         }
     }
 
+    public async Task ExecuteAutocomplete<T>(ApplicationCommand? command, Func<T, Task> handler)
+    {
+        try
+        {
+            using (_metrics.Measure.Timer.Time(BotMetrics.ApplicationCommandTime, new MetricTags("Application command", command?.Name ?? "null")))
+                await handler(_provider.Resolve<T>());
+        }
+        catch
+        {
+            // Autocomplete endpoints must respond with type 8 payloads; fallback to empty results.
+            await RespondAutocomplete();
+        }
+    }
+
     public async Task Reply(string content = null, Embed[]? embeds = null)
     {
+        if (_hasResponded)
+        {
+            await EditReply(content, embeds);
+            return;
+        }
+
         await Respond(InteractionResponse.ResponseType.ChannelMessageWithSource,
             new InteractionApplicationCommandCallbackData
             {
                 Content = content,
                 Embeds = embeds,
                 Flags = Message.MessageFlags.Ephemeral
+            });
+    }
+
+    public async Task EditReply(string? content = null, Embed[]? embeds = null)
+    {
+        var applicationId = _provider.Resolve<BotConfig>().ClientId;
+        await Rest.EditOriginalInteractionResponse(applicationId, Event.Token,
+            new WebhookMessageEditRequest
+            {
+                Content = content,
+                Embeds = embeds ?? Array.Empty<Embed>(),
             });
     }
 
@@ -118,5 +156,24 @@ public class InteractionContext
     {
         await Rest.CreateInteractionResponse(Event.Id, Event.Token,
             new InteractionResponse { Type = type, Data = data });
+
+        // Autocomplete results are not a "real" response and can be sent repeatedly.
+        if (type != InteractionResponse.ResponseType.ApplicationCommandAutocompleteResult)
+            _hasResponded = true;
+    }
+
+    public async Task RespondAutocomplete(params ApplicationCommandOption.Choice[] choices)
+    {
+        await Respond(InteractionResponse.ResponseType.ApplicationCommandAutocompleteResult,
+            new InteractionApplicationCommandCallbackData
+            {
+                Choices = choices
+            });
+    }
+
+    public async Task DeleteReply()
+    {
+        var applicationId = _provider.Resolve<BotConfig>().ClientId;
+        await Rest.DeleteOriginalInteractionResponse(applicationId, Event.Token);
     }
 }

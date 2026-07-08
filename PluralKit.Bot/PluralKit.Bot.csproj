@@ -26,4 +26,10 @@
         <PackageReference Include="Sentry" Version="4.13.0" />
         <PackageReference Include="Watson.Lite" Version="6.3.12" />
     </ItemGroup>
+
+    <ItemGroup>
+        <None Update="Tools\Tts\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
 </Project>

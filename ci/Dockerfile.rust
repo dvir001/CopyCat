@@ -18,30 +18,35 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM builder AS binary-builder
+ARG CARGO_JOBS=2
 COPY --from=recipe-builder /build/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json --target x86_64-unknown-linux-musl
+RUN cargo chef cook --release --recipe-path recipe.json --target x86_64-unknown-linux-musl --jobs ${CARGO_JOBS}
+
+ARG BINARIES="migrate app-commands api dispatch gateway avatars avatar_cleanup scheduled_tasks gdpr_worker"
 
 COPY Cargo.toml /build/
 COPY Cargo.lock /build/
 
 COPY crates/ /build/crates
 
-RUN cargo build --bin migrate --release --target x86_64-unknown-linux-musl
-RUN cargo build --bin api --release --target x86_64-unknown-linux-musl
-RUN cargo build --bin dispatch --release --target x86_64-unknown-linux-musl
-RUN cargo build --bin gateway --release --target x86_64-unknown-linux-musl
-RUN cargo build --bin avatars --release --target x86_64-unknown-linux-musl
-RUN cargo build --bin avatar_cleanup --release --target x86_64-unknown-linux-musl
-RUN cargo build --bin scheduled_tasks --release --target x86_64-unknown-linux-musl
-RUN cargo build --bin gdpr_worker --release --target x86_64-unknown-linux-musl
+RUN set -eux; \
+		mkdir -p /out; \
+		for bin in $BINARIES; do \
+			cargo build --bin "$bin" --release --target x86_64-unknown-linux-musl --jobs ${CARGO_JOBS}; \
+			src="/build/target/x86_64-unknown-linux-musl/release/$bin"; \
+			if [ ! -f "$src" ]; then \
+				alt="/build/target/x86_64-unknown-linux-musl/release/$(echo "$bin" | tr '-' '_')"; \
+				if [ -f "$alt" ]; then \
+					src="$alt"; \
+				else \
+					echo "Missing compiled binary for $bin"; \
+					ls -la /build/target/x86_64-unknown-linux-musl/release/; \
+					exit 1; \
+				fi; \
+			fi; \
+			cp "$src" "/out/$bin"; \
+		done
 
 FROM alpine:latest
 
-COPY --from=binary-builder /build/target/x86_64-unknown-linux-musl/release/migrate /migrate
-COPY --from=binary-builder /build/target/x86_64-unknown-linux-musl/release/api /api
-COPY --from=binary-builder /build/target/x86_64-unknown-linux-musl/release/dispatch /dispatch
-COPY --from=binary-builder /build/target/x86_64-unknown-linux-musl/release/gateway /gateway
-COPY --from=binary-builder /build/target/x86_64-unknown-linux-musl/release/avatars /avatars
-COPY --from=binary-builder /build/target/x86_64-unknown-linux-musl/release/avatar_cleanup /avatar_cleanup
-COPY --from=binary-builder /build/target/x86_64-unknown-linux-musl/release/scheduled_tasks /scheduled_tasks
-COPY --from=binary-builder /build/target/x86_64-unknown-linux-musl/release/gdpr_worker /gdpr_worker
+COPY --from=binary-builder /out/ /

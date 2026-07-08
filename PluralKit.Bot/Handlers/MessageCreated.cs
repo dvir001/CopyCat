@@ -114,41 +114,18 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
             await _loggerClean.HandleLoggerBotCleanup(evt);
     }
 
-    private async ValueTask<bool> TryHandleCommand(int shardId, MessageCreateEvent evt, Guild? guild, Channel channel)
+    private ValueTask<bool> TryHandleCommand(int shardId, MessageCreateEvent evt, Guild? guild, Channel channel)
     {
         var content = evt.Content;
-        if (content == null) return false;
+        if (content == null) return new ValueTask<bool>(false);
 
         // Check for command prefix
         if (!HasCommandPrefix(content, _config.ClientId, out var cmdStart) || cmdStart == content.Length)
-            return false;
+            return new ValueTask<bool>(false);
 
-        // if the command message was sent by a user account with bot usage disallowed, ignore it
-        var abuse_log = await _repo.GetAbuseLogByAccount(evt.Author.Id);
-        if (abuse_log != null && abuse_log.DenyBotUsage)
-            return false;
-
-        // Trim leading whitespace from command without actually modifying the string
-        // This just moves the argPos pointer by however much whitespace is at the start of the post-argPos string
-        var trimStartLengthDiff =
-            content.Substring(cmdStart).Length - content.Substring(cmdStart).TrimStart().Length;
-        cmdStart += trimStartLengthDiff;
-
-        try
-        {
-            var system = await _repo.GetSystemByAccount(evt.Author.Id);
-            var config = system != null ? await _repo.GetSystemConfig(system.Id) : null;
-            var guildConfig = guild != null ? await _repo.GetGuild(guild.Id) : null;
-
-            await _tree.ExecuteCommand(new Context(_services, shardId, guild, channel, evt, cmdStart, system, config, guildConfig, _config.Prefixes ?? BotConfig.DefaultPrefixes));
-        }
-        catch (PKError)
-        {
-            // Only permission errors will ever bubble this far and be caught here instead of Context.Execute
-            // so we just catch and ignore these. TODO: this may need to change.
-        }
-
-        return true;
+        // CopyCat disables legacy text commands (pk;/mention) in favor of slash commands.
+        // Return true so command-shaped messages are consumed and do not enter proxy handling.
+        return new ValueTask<bool>(true);
     }
 
     private bool HasCommandPrefix(string message, ulong currentUserId, out int argPos)

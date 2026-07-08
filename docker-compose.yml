@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: ci/Dockerfile.rust
+      args:
+        BINARIES: migrate
+        CARGO_JOBS: 2
     environment:
       - RUST_LOG=info
       - pluralkit__db__data_db_uri=postgresql://postgres:postgres@db:5432/postgres
@@ -12,12 +15,35 @@ services:
     command: ["/migrate"]
     depends_on: ["db"]
 
+  register-commands:
+    build:
+      context: .
+      dockerfile: ci/Dockerfile.rust
+      args:
+        BINARIES: app-commands
+        CARGO_JOBS: 2
+    command: ["/bin/sh", "-lc", "exec /app-commands || exec /app_commands"]
+    environment:
+      - RUST_LOG=info
+      - pluralkit__discord__client_id=${CLIENT_ID}
+      - pluralkit__discord__bot_token=${BOT_TOKEN}
+      - pluralkit__discord__client_secret=1
+      - pluralkit__discord__max_concurrency=1
+      - pluralkit__db__data_db_uri=postgresql://postgres:postgres@db:5432/postgres
+      - pluralkit__db__data_redis_addr=redis://redis:6379
+    depends_on:
+      - redis
+    restart: "no"
+
   bot:
     build:
       context: .
       dockerfile: ci/Dockerfile.dotnet
     command: ["bin/PluralKit.Bot.dll"]
+    volumes:
+      - "/opt/docker/copycat/piper_voices:/app/piper-voices"
     environment:
+      - "COPYCAT_TTS_DOWNLOAD_VOICES=1"
       - "PluralKit__Database=Host=db;Username=postgres;Password=postgres;Database=postgres"
       - "PluralKit__RedisAddr=redis"
       - "PluralKit__Bot__Token=${BOT_TOKEN}"
@@ -36,6 +62,9 @@ services:
     build:
       context: .
       dockerfile: ci/Dockerfile.rust
+      args:
+        BINARIES: gateway
+        CARGO_JOBS: 2
     command: ["/gateway"]
     environment:
       - RUST_LOG=info

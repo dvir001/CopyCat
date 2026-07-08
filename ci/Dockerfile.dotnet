@@ -9,21 +9,57 @@ COPY PluralKit.API/PluralKit.API.csproj /app/PluralKit.API/
 COPY PluralKit.Bot/PluralKit.Bot.csproj /app/PluralKit.Bot/
 COPY PluralKit.Core/PluralKit.Core.csproj /app/PluralKit.Core/
 COPY PluralKit.Tests/PluralKit.Tests.csproj /app/PluralKit.Tests/
-COPY .git/ /app/.git
 COPY Serilog/ /app/Serilog/
 RUN dotnet restore PluralKit.sln
 
 # Copy the rest of the code and build
 COPY . /app
-RUN dotnet build -c Release -o bin
+RUN sed -i 's/\r$//' /app/ci/dotnet-version.sh
+RUN chmod +x /app/ci/dotnet-version.sh
+ARG DOTNET_BUILD_MAXCPU=1
+RUN dotnet build PluralKit.Bot/PluralKit.Bot.csproj -c Release -m:${DOTNET_BUILD_MAXCPU} -o bin
 
 # Build runtime stage (doesn't include SDK)
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 LABEL org.opencontainers.image.source = "https://github.com/PluralKit/PluralKit"
 
+# TTS runtime: Python + ffmpeg for /tts local voice generation (morshu/cabal via pydub)
+# piper-tts is also installed here for neural voices — it's the actively maintained fork
+# of the original rhasspy/piper project (now archived), maintained at OHF-Voice/piper1-gpl.
+ENV NLTK_DATA=/usr/share/nltk_data
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-pip ffmpeg git curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip3 install --no-cache-dir --break-system-packages \
+         pydub "numpy==1.23.5" inflect g2p_en "nltk==3.8.1" pyyaml piper-tts \
+    && python3 -m nltk.downloader -d /usr/share/nltk_data averaged_perceptron_tagger cmudict
+
 WORKDIR /app
 COPY --from=build /app ./
 
+# Fetch local TTS voice repos used by Tools/Tts/tts_generate.py.
+# We intentionally do NOT install their requirements.txt: those pull in desktop-GUI/audio
+# deps (PySide6, sounddevice) that are unavailable/unneeded for headless WAV generation.
+# The generators only import g2p_en, numpy and pydub, which are installed above.
+RUN mkdir -p /app/bin/Tools/Tts/vendors \
+    && git clone --depth 1 https://github.com/n0spaces/MorshuTalk /app/bin/Tools/Tts/vendors/MorshuTalk \
+    && git clone --depth 1 https://github.com/ASp2004/TiberianSunCABAL-Talk /app/bin/Tools/Tts/vendors/TiberianSunCABAL-Talk
+
+# Copy the CABAL game audio assets and write config.yaml so the generator finds them.
+# The .aud files must be present in PluralKit.Bot/Tools/Tts/cabal_audio/ at build time.
+# Missing files (01-n400.aud, nod-02.aud, nod-07b.aud) will cause CABAL to fail at runtime.
+COPY PluralKit.Bot/Tools/Tts/cabal_audio/ /app/cabal_audio/
+RUN printf 'speech02: /app/cabal_audio\ne01vox01: /app/cabal_audio\nsidecd02: /app/cabal_audio\n' \
+    > /app/bin/Tools/Tts/vendors/TiberianSunCABAL-Talk/tibsuncabal_talk/config.yaml
+
+# Piper voice models are NOT baked into the image. Instead they are downloaded at
+# container start into a mounted volume (/app/piper-voices) by ci/download-piper-voices.sh,
+# invoked from ci/entrypoint.sh when COPYCAT_TTS_DOWNLOAD_VOICES=1. This keeps the image
+# small, avoids re-downloading on every rebuild, and lets the models live on the host disk.
+RUN mkdir -p /app/piper-voices \
+    && sed -i 's/\r$//' /app/ci/download-piper-voices.sh /app/ci/entrypoint.sh \
+    && chmod +x /app/ci/download-piper-voices.sh /app/ci/entrypoint.sh
+
 # Allow overriding CMD from eg. docker-compose to run API layer too
-ENTRYPOINT ["dotnet"]
+ENTRYPOINT ["/app/ci/entrypoint.sh"]
 CMD ["bin/PluralKit.Bot.dll"]

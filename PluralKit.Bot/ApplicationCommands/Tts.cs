@@ -140,11 +140,12 @@ public class ApplicationCommandTts
         var reply = await TryBuildReplyEmbed(ctx, replyTarget);
         var embeds = reply == null ? Array.Empty<Embed>() : new[] { reply.Embed };
 
-        // Webhook messages can't create native Discord replies, so mention the replied-to user
-        // directly in the content to actually notify them.
+        // <@pingUserId> must appear in message content for Discord to send the notification ping.
+        // Keep it as a small -# footnote so it doesn't clutter the visible message text.
+        // The mention is also included in the embed description for a cleaner visual (see TryBuildReplyEmbed).
         var content = text;
         if (reply?.PingUserId is { } pingUserId)
-            content = string.IsNullOrWhiteSpace(content) ? $"<@{pingUserId}>" : $"<@{pingUserId}> {content}";
+            content = $"{content}\n-# <@{pingUserId}>";
 
         using var generatedClip = await _tts.GenerateClip(voice.Id, await ResolveMentionsForTts(ctx, text));
 
@@ -319,6 +320,7 @@ public class ApplicationCommandTts
             return new ReplyRender(BuildReplyFallbackEmbed(jumpLink), null);
 
         var description = BuildReplyDescription(referenced, jumpLink);
+        var pingUserId = await ResolvePingTarget(ctx, replyTarget.MessageId, referenced);
 
         var embed = new Embed
         {
@@ -326,7 +328,6 @@ public class ApplicationCommandTts
             Description = description,
         };
 
-        var pingUserId = await ResolvePingTarget(ctx, replyTarget.MessageId, referenced);
         return new ReplyRender(embed, pingUserId);
     }
 
@@ -456,7 +457,10 @@ public class ApplicationCommandTts
             if (replacements.ContainsKey(m.Value)) continue;
             if (!ulong.TryParse(m.Groups[1].Value, out var userId)) continue;
 
-            string name = m.Value;
+            // Default to empty string: if we can't resolve the user, strip the
+            // mention rather than passing the raw "<@id>" token to the TTS engine
+            // (which would be spoken as "at 123456789").
+            string name = "";
 
             // Check interaction resolved data first (no API call needed).
             if (resolved != null && resolved.TryGetValue(userId, out var resolvedUser))

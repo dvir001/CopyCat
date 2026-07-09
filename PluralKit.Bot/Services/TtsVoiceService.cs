@@ -167,10 +167,53 @@ public class TtsVoiceService
         // Add a tiny silence tail so Discord playback doesn't feel abruptly cut.
         TryAppendWaveSilence(outputPath, 120);
 
+        // Compress WAV -> Ogg/Opus before upload (~10x smaller than raw PCM, no perceptible
+        // quality loss for speech; Opus is Discord's native voice codec and plays inline).
+        outputPath = CompressToOggOpus(outputPath);
+
         var stream = new FileStream(outputPath, FileMode.Open, FileAccess.Read, FileShare.Read);
         var safeVoice = string.Concat(voiceId.Select(ch => char.IsLetterOrDigit(ch) || ch == '-' || ch == '_' ? ch : '_')).ToLowerInvariant();
-        var multipart = new MultipartFile($"tts-{safeVoice}.wav", stream, "Generated voice clip", null, null, false);
+        var multipart = new MultipartFile($"tts-{safeVoice}{Path.GetExtension(outputPath)}", stream, "Generated voice clip", null, null, false);
         return new GeneratedVoiceClip(multipart, outputPath);
+    }
+
+    // Re-encode a generated WAV to Ogg/Opus (32 kbps) via ffmpeg before it's uploaded to Discord.
+    // Cuts a typical clip ~10x with no perceptible loss for speech. Best-effort: if ffmpeg is
+    // missing or the conversion fails for any reason, the original WAV path is returned unchanged.
+    private string CompressToOggOpus(string wavPath)
+    {
+        try
+        {
+            var oggPath = Path.ChangeExtension(wavPath, ".ogg");
+            var psi = new ProcessStartInfo
+            {
+                FileName = "ffmpeg",
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            foreach (var arg in new[] { "-nostdin", "-y", "-i", wavPath, "-c:a", "libopus", "-b:a", "32k", oggPath })
+                psi.ArgumentList.Add(arg);
+
+            using var proc = Process.Start(psi);
+            if (proc == null)
+                return wavPath;
+
+            _ = proc.StandardError.ReadToEnd();
+            proc.WaitForExit();
+
+            if (proc.ExitCode == 0 && global::System.IO.File.Exists(oggPath) && new FileInfo(oggPath).Length > 0)
+            {
+                try { global::System.IO.File.Delete(wavPath); } catch { /* leave temp file for GC */ }
+                return oggPath;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Opus compression failed; falling back to raw WAV");
+        }
+
+        return wavPath;
     }
 
     private static string PreparePiperInput(string text)
@@ -265,10 +308,11 @@ public class TtsVoiceService
                 if (!global::System.IO.File.Exists(outputPath))
                     throw new PKError("TTS generation completed but no output file was created.");
 
-                var stream = new FileStream(outputPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                var finalPath = CompressToOggOpus(outputPath);
+                var stream = new FileStream(finalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
                 var safeVoice = string.Concat(voiceId.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_')).ToLowerInvariant();
-                var multipart = new MultipartFile($"tts-{safeVoice}.wav", stream, "Generated voice clip", null, null, false);
-                return new GeneratedVoiceClip(multipart, outputPath);
+                var multipart = new MultipartFile($"tts-{safeVoice}{Path.GetExtension(finalPath)}", stream, "Generated voice clip", null, null, false);
+                return new GeneratedVoiceClip(multipart, finalPath);
             }
             lastError = result.Error;
         }

@@ -8,6 +8,7 @@ public record ApplicationCommandInteractionData
     public string? CustomId { get; init; }
     public ulong? TargetId { get; init; }
     public ComponentType? ComponentType { get; init; }
+    public string[]? Values { get; init; }
     public InteractionResolvedData Resolved { get; init; }
     public MessageComponent[]? Components { get; init; }
 

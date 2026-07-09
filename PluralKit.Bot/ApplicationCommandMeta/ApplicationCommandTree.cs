@@ -15,6 +15,8 @@ public partial class ApplicationCommandTree
             return ctx.Execute<ApplicationCommandProxiedMessage>(ProxiedMessageDelete, m => m.DeleteMessage(ctx));
         else if (ctx.Event.Data!.Name == SayContextMenu.Name)
             return ctx.Execute<ApplicationCommandSay>(SayContextMenu, m => m.ShowSayReplyModal(ctx));
+        else if (ctx.Event.Data!.Name == TtsReply.Name)
+            return ctx.Execute<ApplicationCommandTtsReply>(TtsReply, m => m.ShowModal(ctx));
 
         return null;
     }
@@ -24,6 +26,8 @@ public partial class ApplicationCommandTree
         var customId = ctx.Event.Data?.CustomId ?? "";
         if (customId.StartsWith("say-reply:"))
             return ctx.Execute<ApplicationCommandSay>(null, m => m.HandleSayReplyModal(ctx));
+        if (customId.StartsWith("ttsreply-modal:"))
+            return ctx.Execute<ApplicationCommandTtsReply>(null, m => m.HandleModalSubmit(ctx));
 
         return null;
     }

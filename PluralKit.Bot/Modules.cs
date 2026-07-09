@@ -131,6 +131,7 @@ public class BotModule: Module
         builder.RegisterType<ApplicationCommandTree>().AsSelf();
         builder.RegisterType<ApplicationCommandSay>().AsSelf();
         builder.RegisterType<ApplicationCommandTts>().AsSelf();
+        builder.RegisterType<ApplicationCommandTtsReply>().AsSelf();
         builder.RegisterType<ApplicationCommandProxiedMessage>().AsSelf();
 
         // Bot core

@@ -345,45 +345,59 @@ public class ApplicationCommandSay
         return null;
     }
 
-    // ── "💬 Say as me" message context menu ──────────────────────────────────
+    // ── "💬 Reply as me" message context menu ─────────────────────────────────
 
     public async Task ShowSayReplyModal(InteractionContext ctx)
     {
         if (ctx.Event.GuildId == 0)
-            throw new PKError("The Say command only works in servers.");
+            throw new PKError("The Reply as me command only works in servers.");
 
         var targetMessageId = ctx.Event.Data?.TargetId
             ?? throw new PKError("Could not determine the target message.");
 
+        // Newer Discord modals wrap each input in a Label (type 18). The message is a required
+        // paragraph text input; the file is an optional File Upload (type 19, modal-only) that
+        // accepts zero or one attachment.
         await ctx.RespondModal(
             $"say-reply:{ctx.ChannelId}:{targetMessageId}",
-            "Say as me",
+            "Reply as me",
             new[]
             {
                 new MessageComponent
                 {
-                    Type = ComponentType.ActionRow,
-                    Components = new[]
+                    Type = ComponentType.Label,
+                    Label = "Message",
+                    Component = new MessageComponent
                     {
-                        new MessageComponent
-                        {
-                            Type = ComponentType.TextInput,
-                            CustomId = "text",
-                            Label = "Message to say",
-                            Style = ButtonStyle.Secondary, // 2 = Paragraph
-                            Required = true,
-                            MaxLength = 2000,
-                            Placeholder = "Type your message\u2026"
-                        }
-                    }
-                }
+                        Type = ComponentType.TextInput,
+                        CustomId = "text",
+                        Style = ButtonStyle.Secondary, // 2 = Paragraph
+                        Required = true,
+                        MaxLength = 2000,
+                        Placeholder = "Type your message\u2026",
+                    },
+                },
+                new MessageComponent
+                {
+                    Type = ComponentType.Label,
+                    Label = "Attach a file (optional)",
+                    Required = false,
+                    Component = new MessageComponent
+                    {
+                        Type = ComponentType.FileUpload,
+                        CustomId = "file",
+                        Required = false,
+                        MinValues = 0,
+                        MaxValues = 1,
+                    },
+                },
             });
     }
 
     public async Task HandleSayReplyModal(InteractionContext ctx)
     {
         if (ctx.Event.GuildId == 0)
-            throw new PKError("The Say command only works in servers.");
+            throw new PKError("The Reply as me command only works in servers.");
 
         var customId = ctx.Event.Data?.CustomId ?? "";
         var parts = customId.Split(':');
@@ -391,13 +405,11 @@ public class ApplicationCommandSay
                                || !ulong.TryParse(parts[2], out var targetMessageId))
             throw new PKError("Invalid modal data.");
 
-        var text = ctx.Event.Data?.Components?
-            .SelectMany(row => row.Components ?? Array.Empty<MessageComponent>())
-            .FirstOrDefault(c => string.Equals(c.CustomId, "text", StringComparison.OrdinalIgnoreCase))
-            ?.Value ?? "";
+        var text = GetModalText(ctx.Event.Data?.Components, "text");
+        var attachment = GetModalAttachment(ctx.Event.Data, "file");
 
-        if (string.IsNullOrWhiteSpace(text))
-            throw new PKError("Provide text to send.");
+        if (string.IsNullOrWhiteSpace(text) && attachment == null)
+            throw new PKError("Provide text, a file, or both.");
         if (text.Length > 2000)
             throw new PKError("Message text cannot be longer than 2000 characters.");
 
@@ -430,7 +442,7 @@ public class ApplicationCommandSay
 
         var content = text;
         if (reply?.PingUserId is { } pingUserId)
-            content = $"{content}\n-# <@{pingUserId}>";
+            content = string.IsNullOrWhiteSpace(content) ? $"-# <@{pingUserId}>" : $"{content}\n-# <@{pingUserId}>";
 
         var sent = await _webhookExecutor.ExecuteWebhook(new ProxyRequest
         {
@@ -441,7 +453,7 @@ public class ApplicationCommandSay
             Name = proxyName,
             AvatarUrl = avatarUrl,
             Content = content,
-            Attachments = Array.Empty<Message.Attachment>(),
+            Attachments = attachment == null ? Array.Empty<Message.Attachment>() : new[] { attachment },
             FileSizeLimit = guild.FileSizeLimit(),
             Embeds = embeds,
             Stickers = Array.Empty<Sticker>(),
@@ -462,5 +474,48 @@ public class ApplicationCommandSay
 
         await ctx.Reply($"{Emojis.Success} Sent.");
         try { await ctx.DeleteReply(); } catch { }
+    }
+
+    // Modal submit data comes back as Label (type 18) wrappers, each holding one nested component
+    // in `Component`. Flatten to the inner components so we can look them up by custom_id. Also
+    // tolerate the legacy Action Row nesting and bare components, for robustness.
+    internal static IEnumerable<MessageComponent> FlattenModalComponents(MessageComponent[]? rows)
+    {
+        if (rows == null)
+            yield break;
+
+        foreach (var row in rows)
+        {
+            if (row.Component != null)
+                yield return row.Component;
+            if (row.Components != null)
+                foreach (var nested in row.Components)
+                    yield return nested;
+            if (row.Component == null && row.Components == null)
+                yield return row;
+        }
+    }
+
+    internal static string GetModalText(MessageComponent[]? rows, string customId)
+        => FlattenModalComponents(rows)
+            .FirstOrDefault(c => string.Equals(c.CustomId, customId, StringComparison.Ordinal))
+            ?.Value ?? string.Empty;
+
+    // A submitted File Upload (type 19) reports the uploaded attachment's snowflake id(s) in the
+    // component's `values` array; the actual attachment objects live in data.resolved.attachments.
+    // Returns null when the optional upload was left empty or can't be resolved.
+    internal static Message.Attachment? GetModalAttachment(ApplicationCommandInteractionData? data, string customId)
+    {
+        var component = FlattenModalComponents(data?.Components)
+            .FirstOrDefault(c => string.Equals(c.CustomId, customId, StringComparison.Ordinal));
+
+        var attachmentId = component?.Values?.FirstOrDefault();
+        if (string.IsNullOrEmpty(attachmentId) || !ulong.TryParse(attachmentId, out var id))
+            return null;
+
+        if (data?.Resolved?.Attachments == null || !data.Resolved.Attachments.TryGetValue(id, out var attachment))
+            return null;
+
+        return attachment;
     }
 }

@@ -14,73 +14,6 @@ public class ApplicationCommandTts
 {
     private static readonly Regex UrlRegex = new(@"(http|https)(:\/\/)?(www\.)?([-a-zA-Z0-9@:%._\+~#=]{1,256})?\.?([a-zA-Z0-9()]{1,6})?\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$",
         RegexOptions.CultureInvariant);
-    internal static readonly VoiceDefinition[] VoiceCatalog =
-    {
-        new("ar_JO-kareem-medium",                "Arabic — Kareem"),
-        new("ca_ES-upc_ona-medium",               "Catalan — Ona"),
-        new("cabal",                               "CABAL"),
-        new("cs_CZ-jirka-medium",                 "Czech — Jirka"),
-        new("cy_GB-gwryw_gogleddol-medium",       "Welsh — Gwryw Gogleddol"),
-        new("da_DK-talesyntese-medium",           "Danish — Talesyntese"),
-        new("de_DE-thorsten-medium",              "German — Thorsten"),
-        new("el_GR-rapunzelina-low",              "Greek — Rapunzelina"),
-        new("en_GB-alan-medium",                  "Alan (UK, male)"),
-        new("en_GB-alba-medium",                  "Alba (UK, female, Scottish)"),
-        new("en_GB-aru-medium",                   "Aru (UK, female)"),
-        new("en_GB-cori-high",                    "Cori (UK, female, high quality)"),
-        new("en_GB-jenny_dioco-medium",           "Jenny (UK, female)"),
-        new("en_GB-northern_english_male-medium", "Northern English (UK, male)"),
-        new("en_GB-southern_english_female-low",  "Southern English (UK, female)"),
-        new("en_US-alex-jones-medium",              "Alex Jones (US, male)"),
-        new("en_US-amy-medium",                   "Amy (US, female)"),
-        new("en_US-bryce-medium",                 "Bryce (US, male)"),
-        new("en_US-danny-low",                    "Danny (US, male)"),
-        new("en_US-hfc_female-medium",            "HFC Female (US)"),
-        new("en_US-hfc_male-medium",              "HFC Male (US)"),
-        new("en_US-joe-medium",                   "Joe (US, male)"),
-        new("en_US-john-medium",                  "John (US, male)"),
-        new("en_US-kathleen-low",                 "Kathleen (US, female)"),
-        new("en_US-kristin-medium",               "Kristin (US, female)"),
-        new("en_US-kusal-medium",                 "Kusal (US, male)"),
-        new("en_US-lessac-high",                  "Lessac (US, female, high quality)"),
-        new("en_US-ljspeech-high",                "LJSpeech (US, female, high quality)"),
-        new("en_US-norman-medium",                "Norman (US, male)"),
-        new("en_US-ryan-high",                    "Ryan (US, male, high quality)"),
-        new("en_US-trump-speech-medium",          "Trump Speech (US, male)"),
-        new("es_AR-daniela-high",                 "Spanish (Argentina) — Daniela"),
-        new("es_ES-davefx-medium",                "Spanish (Spain) — Dave"),
-        new("es_MX-ald-medium",                   "Spanish (Mexico) — Ald"),
-        new("fa_IR-gyro-medium",                  "Farsi — Gyro"),
-        new("fi_FI-harri-medium",                 "Finnish — Harri"),
-        new("fr_FR-siwis-medium",                 "French — Siwis"),
-        new("hi_IN-pratham-medium",               "Hindi — Pratham"),
-        new("hu_HU-anna-medium",                  "Hungarian — Anna"),
-        new("is_IS-bui-medium",                   "Icelandic — Bui"),
-        new("it_IT-paola-medium",                 "Italian — Paola"),
-        new("ka_GE-natia-medium",                 "Georgian — Natia"),
-        new("kk_KZ-raya-x_low",                   "Kazakh — Raya"),
-        new("lb_LU-marylux-medium",               "Luxembourgish — Marylux"),
-        new("lv_LV-aivars-medium",                "Latvian — Aivars"),
-        new("ml_IN-meera-medium",                 "Malayalam — Meera"),
-        new("morshu",                              "Morshu"),
-        new("ne_NP-chitwan-medium",               "Nepali — Chitwan"),
-        new("nl_BE-nathalie-medium",              "Dutch (Belgium) — Nathalie"),
-        new("nl_NL-ronnie-medium",                "Dutch (Netherlands) — Ronnie"),
-        new("no_NO-talesyntese-medium",           "Norwegian — Talesyntese"),
-        new("pl_PL-gosia-medium",                 "Polish — Gosia"),
-        new("pt_BR-faber-medium",                 "Portuguese (Brazil) — Faber"),
-        new("ro_RO-mihai-medium",                 "Romanian — Mihai"),
-        new("ru_RU-dmitri-medium",                "Russian — Dmitri"),
-        new("sk_SK-lili-medium",                  "Slovak — Lili"),
-        new("sl_SI-artur-medium",                 "Slovenian — Artur"),
-        new("sr_RS-serbski_institut-medium",      "Serbian — Serbski Institut"),
-        new("sv_SE-nst-medium",                   "Swedish — NST"),
-        new("sw_CD-lanfrica-medium",              "Swahili — Lanfrica"),
-        new("tr_TR-fettah-medium",                "Turkish — Fettah"),
-        new("uk_UA-lada-x_low",                   "Ukrainian — Lada"),
-        new("vi_VN-vais1000-medium",              "Vietnamese — Vais1000"),
-        new("zh_CN-huayan-medium",                "Chinese — Huayan"),
-    };
 
     private readonly IDiscordCache _cache;
     private readonly WebhookExecutorService _webhookExecutor;
@@ -112,7 +45,45 @@ public class ApplicationCommandTts
 
         var voice = ParseVoice(GetOptionalStringOption(ctx.Event.Data?.Options, "voice"));
         var attachment = GetOptionalAttachmentOption(ctx.Event.Data, "attachment");
+        var replyTo = GetOptionalStringOption(ctx.Event.Data?.Options, "reply_to");
+        var replyTarget = TryParseReplyTarget(replyTo, ctx.GuildId, ctx.ChannelId);
 
+        await ExecuteTtsCore(ctx, voice, text, attachment, replyTarget);
+
+        // Remove the deferred ephemeral "thinking" indicator now that the message was sent.
+        try
+        {
+            await ctx.DeleteReply();
+        }
+        catch
+        {
+            // Keep successful send behavior even if ephemeral cleanup fails.
+        }
+    }
+
+    // Shared "speak this text as a webhook reply" flow used by the "Reply as me (TTS)" message
+    // context-menu command. Assumes the interaction has already been deferred (ephemeral);
+    // errors thrown here surface as an edit of that deferred reply. Records the command message
+    // and per-user voice usage exactly like the /tts slash-command path.
+    internal async Task SendTtsReply(InteractionContext ctx, string voiceId, string text, ulong replyToMessageId,
+        Message.Attachment? attachment = null)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            throw new PKError("Provide text to speak.");
+        if (text.Length > 2000)
+            throw new PKError("Message text cannot be longer than 2000 characters.");
+
+        var voice = ParseVoice(voiceId);
+        var replyTarget = new ReplyTarget(ctx.GuildId, ctx.ChannelId, replyToMessageId);
+        await ExecuteTtsCore(ctx, voice, text, attachment, replyTarget);
+    }
+
+    // Core send flow shared by the /tts slash command (SendAsInvoker) and the "Reply as me (TTS)"
+    // context-menu command (SendTtsReply). The interaction must already be deferred; the caller
+    // owns cleaning up the deferred ephemeral reply afterwards.
+    private async Task ExecuteTtsCore(InteractionContext ctx, VoiceDefinition voice, string text,
+        Message.Attachment? attachment, ReplyTarget? replyTarget)
+    {
         var guild = await _cache.GetGuild(ctx.GuildId);
         var messageChannel = await _cache.GetOrFetchChannel(ctx.Rest, ctx.GuildId, ctx.ChannelId);
         var rootChannel = await _cache.GetRootChannel(ctx.GuildId, ctx.ChannelId);
@@ -135,8 +106,6 @@ public class ApplicationCommandTts
         var threadId = messageChannel.IsThread() ? messageChannel.Id : (ulong?)null;
         var proxyName = ctx.Member?.Nick ?? ctx.User.GlobalName ?? ctx.User.Username;
         var avatarUrl = BuildAvatarUrl(ctx);
-        var replyTo = GetOptionalStringOption(ctx.Event.Data?.Options, "reply_to");
-        var replyTarget = TryParseReplyTarget(replyTo, ctx.GuildId, messageChannel.Id);
         var reply = await TryBuildReplyEmbed(ctx, replyTarget);
         var embeds = reply == null ? Array.Empty<Embed>() : new[] { reply.Embed };
 
@@ -178,8 +147,9 @@ public class ApplicationCommandTts
             OriginalMid = ctx.Event.Id
         });
 
-        // Track per-user voice usage so the /tts voice autocomplete can default to the caller's
-        // most-used voices. Best-effort — never fail an otherwise-successful send over a stats write.
+        // Track per-user voice usage so the /tts voice autocomplete and the "Reply as me (TTS)" picker can
+        // default to the caller's most-used voices. Best-effort — never fail an otherwise-successful
+        // send over a stats write.
         try
         {
             await ctx.Repository.IncrementVoiceUsage(ctx.User.Id, voice.Id);
@@ -187,16 +157,6 @@ public class ApplicationCommandTts
         catch
         {
             // best-effort usage tracking
-        }
-
-        // Remove the deferred ephemeral "thinking" indicator now that the message was sent.
-        try
-        {
-            await ctx.DeleteReply();
-        }
-        catch
-        {
-            // Keep successful send behavior even if ephemeral cleanup fails.
         }
     }
 
@@ -227,15 +187,15 @@ public class ApplicationCommandTts
             }
 
             ordered = mostUsed
-                .Select(id => VoiceCatalog.FirstOrDefault(v => string.Equals(v.Id, id, StringComparison.OrdinalIgnoreCase)))
+                .Select(id => _tts.Catalog.FirstOrDefault(v => string.Equals(v.Id, id, StringComparison.OrdinalIgnoreCase)))
                 .Where(v => !string.IsNullOrEmpty(v.Id))
-                .Concat(VoiceCatalog)
+                .Concat(_tts.Catalog)
                 .Where(v => _tts.IsVoiceAvailable(v.Id))
                 .DistinctBy(v => v.Id);
         }
         else
         {
-            ordered = VoiceCatalog
+            ordered = _tts.Catalog
                 .Where(v => _tts.IsVoiceAvailable(v.Id))
                 .Where(v => v.Id.Contains(input, StringComparison.OrdinalIgnoreCase)
                     || v.Name.Contains(input, StringComparison.OrdinalIgnoreCase));
@@ -249,9 +209,9 @@ public class ApplicationCommandTts
         await ctx.RespondAutocomplete(matches);
     }
 
-    private static VoiceDefinition ParseVoice(string value)
+    private VoiceDefinition ParseVoice(string value)
     {
-        var match = VoiceCatalog.FirstOrDefault(v => string.Equals(v.Id, value, StringComparison.OrdinalIgnoreCase));
+        var match = _tts.Catalog.FirstOrDefault(v => string.Equals(v.Id, value, StringComparison.OrdinalIgnoreCase));
         if (!string.IsNullOrWhiteSpace(match.Id))
             return match;
 
@@ -553,5 +513,4 @@ public class ApplicationCommandTts
 
     private record ReplyTarget(ulong GuildId, ulong ChannelId, ulong MessageId);
     private record ReplyRender(Embed Embed, ulong? PingUserId);
-    internal readonly record struct VoiceDefinition(string Id, string Name);
 }

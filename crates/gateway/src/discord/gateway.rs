@@ -85,7 +85,7 @@ pub fn create_shards(redis: fred::clients::RedisPool) -> anyhow::Result<Vec<Shar
 #[tracing::instrument(fields(shard = %shard.id()), skip_all)]
 pub async fn runner(
     mut shard: Shard<RedisQueue>,
-    tx: Sender<(ShardId, Event, String)>,
+    tx: Sender<(ShardId, Option<Event>, String)>,
     tx_state: Sender<(ShardId, ShardStateEvent, Option<Event>, Option<i32>)>,
     cache: Arc<DiscordCache>,
     runtime_config: Arc<RuntimeConfig>,
@@ -144,7 +144,22 @@ pub async fn runner(
                 continue;
             }
             Err(error) => {
-                error!(?error, ?shard_id, "failed to parse gateway event");
+                // twilight (pinned 0.16) can't deserialize some newer Discord payloads —
+                // notably modal submits using the new Label/FileUpload/select-in-modal
+                // components. The bot re-parses the raw JSON with its own (Myriad) parser,
+                // so for interactions we forward the raw event rather than dropping it. The
+                // parsed twilight Event is only used gateway-side (awaiter + filter), and
+                // interactions are forwarded unconditionally by that filter anyway.
+                if is_interaction_create(&raw_event) {
+                    warn!(?error, ?shard_id, "twilight could not parse interaction; forwarding raw");
+                    if runtime_config.exists(RUNTIME_CONFIG_KEY_EVENT_TARGET).await {
+                        if let Err(error) = tx.try_send((shard.id(), None, raw_event)) {
+                            error!(?error, "error forwarding unparsed interaction event");
+                        }
+                    }
+                } else {
+                    error!(?error, ?shard_id, "failed to parse gateway event");
+                }
                 continue;
             }
         };
@@ -229,11 +244,25 @@ pub async fn runner(
         }
 
         if runtime_config.exists(RUNTIME_CONFIG_KEY_EVENT_TARGET).await {
-            if let Err(error) = tx.try_send((shard.id(), event, raw_event)) {
+            if let Err(error) = tx.try_send((shard.id(), Some(event), raw_event)) {
                 tracing::error!(?error, "error sending shard event");
             }
         }
     }
+}
+
+/// Cheap check for whether a raw gateway dispatch is an INTERACTION_CREATE. Used on the
+/// twilight parse-failure path so we can still forward interactions the bot parses itself.
+fn is_interaction_create(raw: &str) -> bool {
+    #[derive(serde::Deserialize)]
+    struct Dispatch {
+        t: Option<String>,
+    }
+    serde_json::from_str::<Dispatch>(raw)
+        .ok()
+        .and_then(|d| d.t)
+        .map(|t| t == "INTERACTION_CREATE")
+        .unwrap_or(false)
 }
 
 pub fn presence(status: &str, going_away: bool) -> UpdatePresencePayload {

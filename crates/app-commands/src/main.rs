@@ -49,7 +49,8 @@ async fn main() -> anyhow::Result<()> {
         // message commands
         // description must be empty string
         CommandBuilder::new("\u{274c} Delete message", "", CommandType::Message).build(),
-        CommandBuilder::new("\u{1f4ac} Say as me", "", CommandType::Message).build(),
+        CommandBuilder::new("\u{1f4ac} Reply as me", "", CommandType::Message).build(),
+        CommandBuilder::new("\u{1f50a} Reply as me (TTS)", "", CommandType::Message).build(),
     ];
 
     interaction.set_global_commands(&commands).await?;

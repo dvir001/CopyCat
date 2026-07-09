@@ -112,7 +112,45 @@ public class ApplicationCommandTts
 
         var voice = ParseVoice(GetOptionalStringOption(ctx.Event.Data?.Options, "voice"));
         var attachment = GetOptionalAttachmentOption(ctx.Event.Data, "attachment");
+        var replyTo = GetOptionalStringOption(ctx.Event.Data?.Options, "reply_to");
+        var replyTarget = TryParseReplyTarget(replyTo, ctx.GuildId, ctx.ChannelId);
 
+        await ExecuteTtsCore(ctx, voice, text, attachment, replyTarget);
+
+        // Remove the deferred ephemeral "thinking" indicator now that the message was sent.
+        try
+        {
+            await ctx.DeleteReply();
+        }
+        catch
+        {
+            // Keep successful send behavior even if ephemeral cleanup fails.
+        }
+    }
+
+    // Shared "speak this text as a webhook reply" flow used by the "Reply as me (TTS)" message
+    // context-menu command. Assumes the interaction has already been deferred (ephemeral);
+    // errors thrown here surface as an edit of that deferred reply. Records the command message
+    // and per-user voice usage exactly like the /tts slash-command path.
+    internal async Task SendTtsReply(InteractionContext ctx, string voiceId, string text, ulong replyToMessageId,
+        Message.Attachment? attachment = null)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            throw new PKError("Provide text to speak.");
+        if (text.Length > 2000)
+            throw new PKError("Message text cannot be longer than 2000 characters.");
+
+        var voice = ParseVoice(voiceId);
+        var replyTarget = new ReplyTarget(ctx.GuildId, ctx.ChannelId, replyToMessageId);
+        await ExecuteTtsCore(ctx, voice, text, attachment, replyTarget);
+    }
+
+    // Core send flow shared by the /tts slash command (SendAsInvoker) and the "Reply as me (TTS)"
+    // context-menu command (SendTtsReply). The interaction must already be deferred; the caller
+    // owns cleaning up the deferred ephemeral reply afterwards.
+    private async Task ExecuteTtsCore(InteractionContext ctx, VoiceDefinition voice, string text,
+        Message.Attachment? attachment, ReplyTarget? replyTarget)
+    {
         var guild = await _cache.GetGuild(ctx.GuildId);
         var messageChannel = await _cache.GetOrFetchChannel(ctx.Rest, ctx.GuildId, ctx.ChannelId);
         var rootChannel = await _cache.GetRootChannel(ctx.GuildId, ctx.ChannelId);
@@ -135,8 +173,6 @@ public class ApplicationCommandTts
         var threadId = messageChannel.IsThread() ? messageChannel.Id : (ulong?)null;
         var proxyName = ctx.Member?.Nick ?? ctx.User.GlobalName ?? ctx.User.Username;
         var avatarUrl = BuildAvatarUrl(ctx);
-        var replyTo = GetOptionalStringOption(ctx.Event.Data?.Options, "reply_to");
-        var replyTarget = TryParseReplyTarget(replyTo, ctx.GuildId, messageChannel.Id);
         var reply = await TryBuildReplyEmbed(ctx, replyTarget);
         var embeds = reply == null ? Array.Empty<Embed>() : new[] { reply.Embed };
 
@@ -178,8 +214,9 @@ public class ApplicationCommandTts
             OriginalMid = ctx.Event.Id
         });
 
-        // Track per-user voice usage so the /tts voice autocomplete can default to the caller's
-        // most-used voices. Best-effort — never fail an otherwise-successful send over a stats write.
+        // Track per-user voice usage so the /tts voice autocomplete and the "Reply as me (TTS)" picker can
+        // default to the caller's most-used voices. Best-effort — never fail an otherwise-successful
+        // send over a stats write.
         try
         {
             await ctx.Repository.IncrementVoiceUsage(ctx.User.Id, voice.Id);
@@ -187,16 +224,6 @@ public class ApplicationCommandTts
         catch
         {
             // best-effort usage tracking
-        }
-
-        // Remove the deferred ephemeral "thinking" indicator now that the message was sent.
-        try
-        {
-            await ctx.DeleteReply();
-        }
-        catch
-        {
-            // Keep successful send behavior even if ephemeral cleanup fails.
         }
     }
 

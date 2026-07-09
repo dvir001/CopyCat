@@ -60,5 +60,6 @@ public partial class ApplicationCommandTree
     public static ApplicationCommand ProxiedMessageQuery = new(ApplicationCommandType.Message, "\U00002753 Message info");
     public static ApplicationCommand ProxiedMessageDelete = new(ApplicationCommandType.Message, "\U0000274c Delete message");
     public static ApplicationCommand ProxiedMessagePing = new(ApplicationCommandType.Message, "\U0001f514 Ping author");
-    public static ApplicationCommand SayContextMenu = new(ApplicationCommandType.Message, "\U0001f4ac Say as me");
+    public static ApplicationCommand SayContextMenu = new(ApplicationCommandType.Message, "\U0001f4ac Reply as me");
+    public static ApplicationCommand TtsReply = new(ApplicationCommandType.Message, "\U0001f50a Reply as me (TTS)");
 }

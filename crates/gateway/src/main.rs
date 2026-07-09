@@ -58,7 +58,8 @@ async fn main() -> anyhow::Result<()> {
 
     // arbitrary
     // todo: make sure this doesn't fill up
-    let (event_tx, mut event_rx) = channel::<(ShardId, twilight_gateway::Event, String)>(1000);
+    let (event_tx, mut event_rx) =
+        channel::<(ShardId, Option<twilight_gateway::Event>, String)>(1000);
 
     // todo: make sure this doesn't fill up
     let (state_tx, mut state_rx) = channel::<(
@@ -144,7 +145,14 @@ async fn main() -> anyhow::Result<()> {
             );
 
             while let Some((shard_id, parsed_event, raw_event)) = event_rx.recv().await {
-                let target = if let Some(target) = awaiter.target_for_event(parsed_event).await {
+                // parsed_event is None for events twilight couldn't deserialize but that we
+                // still forward raw (e.g. modal submits with new components); those can't match
+                // an awaiter, so fall straight through to the configured event target.
+                let awaiter_target = match parsed_event {
+                    Some(event) => awaiter.target_for_event(event).await,
+                    None => None,
+                };
+                let target = if let Some(target) = awaiter_target {
                     info!(target = ?target, "sending event to awaiter");
                     Some(target)
                 } else if let Some(target) =

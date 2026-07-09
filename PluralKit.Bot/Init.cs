@@ -66,10 +66,10 @@ public class Init
             // Init the bot instance itself, register handlers and such to the client before beginning to connect
             bot.Init();
 
-            // Probe which TTS voices are actually available on this host and cache the result.
-            // Voices whose backing files are missing will be hidden from the autocomplete list.
+            // Build the TTS voice catalog by scanning the voices directory on this host and cache
+            // it. Voices are discovered from their model files, so adding one needs no code change.
             var ttsService = services.Resolve<TtsVoiceService>();
-            ttsService.ProbeAvailability(ApplicationCommandTts.VoiceCatalog.Select(v => v.Id));
+            ttsService.LoadCatalog();
 
             // load runtime config from redis
             await services.Resolve<RuntimeConfigService>().LoadConfig();

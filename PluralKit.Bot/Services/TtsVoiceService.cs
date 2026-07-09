@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 
 using Myriad.Rest.Types;
 
@@ -33,67 +34,232 @@ public sealed record GeneratedVoiceClip(MultipartFile File, string TempPath): ID
     }
 }
 
+// A voice the bot can speak with: its id (also the model filename stem) and the display name
+// shown in the /tts autocomplete and the reply picker.
+internal readonly record struct VoiceDefinition(string Id, string Name);
+
 public class TtsVoiceService
 {
     private readonly ILogger _logger;
     private HashSet<string> _availableVoiceIds = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<VoiceDefinition> _catalog = Array.Empty<VoiceDefinition>();
+
+    // The voices discovered on disk, in filesystem (id-sorted) order. Populated by LoadCatalog().
+    internal IReadOnlyList<VoiceDefinition> Catalog => _catalog;
+
+    // A background timer re-scans the voices directory on this cadence, so a new voice or an edited
+    // voice-names.json takes effect without a restart. The scan is a cheap directory read.
+    private static readonly TimeSpan CatalogRefreshInterval = TimeSpan.FromSeconds(5);
+    private readonly Timer _refreshTimer;
 
     public TtsVoiceService(ILogger logger)
     {
         _logger = logger.ForContext<TtsVoiceService>();
+        // Periodically re-scan the voices directory in the background so voices/name changes on
+        // disk take effect without a restart. The initial load is done synchronously at startup
+        // (LoadCatalog from Init); this just keeps it fresh afterward.
+        _refreshTimer = new Timer(_ =>
+        {
+            try { LoadCatalog(); }
+            catch (Exception e) { _logger.Warning(e, "TTS catalog refresh failed"); }
+        }, null, CatalogRefreshInterval, CatalogRefreshInterval);
     }
 
     /// <summary>
-    /// Probes which voice IDs from <paramref name="voiceIds"/> are actually usable
-    /// given the files present on disk, caches the result, and logs a summary.
-    /// Call this once at bot startup.
+    /// Builds the voice catalog by scanning the filesystem — every Piper model
+    /// (<c>{id}.onnx</c>) present in the voices directory, plus the special python-bridge
+    /// voices whose vendor libraries are installed — and caches it along with availability.
+    /// Display names resolve in order: (1) an optional drop-in <c>voice-names.json</c> override
+    /// file, else (2) the model's <c>{id}.onnx.json</c> metadata, else (3) a label derived from
+    /// the id. Call once at bot startup; adding a voice is then just dropping its files on disk
+    /// (a restart re-scans) — no recompile.
     /// </summary>
-    public void ProbeAvailability(IEnumerable<string> voiceIds)
+    public void LoadCatalog()
     {
-        var scriptPath = TryResolveScriptPath();
-        var scriptDir  = scriptPath != null ? Path.GetDirectoryName(scriptPath) : null;
+        var overrides = LoadNameOverrides();
 
-        var available  = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var unavailable = new List<string>();
+        var voices = new List<VoiceDefinition>();
+        var available = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var id in voiceIds)
+        // Piper voices: one entry per {id}.onnx model file on disk.
+        foreach (var dir in PiperVoiceDirectories())
         {
-            if (CheckVoiceAvailable(id, scriptDir))
-                available.Add(id);
-            else
-                unavailable.Add(id);
+            foreach (var file in Directory.EnumerateFiles(dir, "*.onnx"))
+            {
+                var id = Path.GetFileNameWithoutExtension(file);
+                if (string.IsNullOrEmpty(id) || !available.Add(id))
+                    continue;
+                voices.Add(new VoiceDefinition(id, ResolveVoiceName(id, overrides, file)));
+            }
         }
 
+        // Special python-bridge voices (morshu / cabal): only when their vendor library is present.
+        var scriptPath = TryResolveScriptPath();
+        var scriptDir  = scriptPath != null ? Path.GetDirectoryName(scriptPath) : null;
+        if (scriptDir != null)
+            foreach (var (id, vendor) in SpecialVoices)
+                if (Directory.Exists(Path.Combine(scriptDir, "vendors", vendor)) && available.Add(id))
+                    voices.Add(new VoiceDefinition(id, ResolveVoiceName(id, overrides, null)));
+
+        // Present in a stable filesystem order — Directory enumeration order isn't guaranteed,
+        // so sort by id (the order `ls` shows).
+        voices.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+
+        var previousCount = _catalog.Count;
+        _catalog = voices;
         _availableVoiceIds = available;
 
-        _logger.Information("TTS availability: {Available} voice(s) ready, {Unavailable} unavailable",
-            available.Count, unavailable.Count);
+        // Log at Information only when the set actually changes (startup, or a voice added/removed);
+        // the periodic refresh is otherwise quiet so it doesn't spam the log every few seconds.
+        if (voices.Count != previousCount)
+            _logger.Information("TTS catalog: {Count} voice(s) on disk ({Overrides} name override(s))",
+                voices.Count, overrides.Count);
+        else
+            _logger.Debug("TTS catalog refreshed: {Count} voice(s)", voices.Count);
 
-        if (unavailable.Count > 0)
-            _logger.Warning("TTS voices unavailable (missing files): {Voices}",
-                string.Join(", ", unavailable));
+        if (voices.Count == 0)
+            _logger.Warning("No TTS voices found — is the piper-voices directory populated?");
     }
 
     public bool IsVoiceAvailable(string voiceId) =>
         _availableVoiceIds.Contains(voiceId);
 
-    private static bool CheckVoiceAvailable(string voiceId, string? scriptDir)
+    // The non-Piper voices, generated via the python bridge; each is listed only if its vendor
+    // library directory (Tools/Tts/vendors/<Vendor>) exists.
+    private static readonly (string Id, string Vendor)[] SpecialVoices =
     {
-        var voiceLower = voiceId.Trim().ToLowerInvariant();
+        ("morshu", "MorshuTalk"),
+        ("cabal", "TiberianSunCABAL-Talk"),
+    };
 
-        if (voiceLower is "morshu" or "cabal")
+    private static IEnumerable<string> PiperVoiceDirectories()
+    {
+        var candidates = new[]
         {
-            // Python bridge: the generator script must exist and the relevant
-            // vendor directory must be present.
-            if (scriptDir == null)
-                return false;
+            "/app/piper-voices",
+            Path.Combine(AppContext.BaseDirectory, "piper-voices"),
+        };
+        return candidates.Where(Directory.Exists).Distinct();
+    }
 
-            var vendorName = voiceLower == "morshu" ? "MorshuTalk" : "TiberianSunCABAL-Talk";
-            return Directory.Exists(Path.Combine(scriptDir, "vendors", vendorName));
+    // Display-name resolution: a drop-in override file wins, then the model's sidecar metadata,
+    // then a label derived from the id. Quality (medium/high/low) is intentionally omitted — it
+    // isn't useful to end users.
+    private static string ResolveVoiceName(string id, IReadOnlyDictionary<string, string> overrides, string? onnxPath)
+    {
+        if (overrides.TryGetValue(id, out var overridden) && !string.IsNullOrWhiteSpace(overridden))
+            return overridden;
+
+        var fromMeta = onnxPath != null ? NameFromOnnxMetadata(onnxPath) : null;
+        if (!string.IsNullOrWhiteSpace(fromMeta))
+            return fromMeta!;
+
+        return NameFromId(id);
+    }
+
+    // Piper ids look like "<locale>-<name>-<quality>", where <name> may contain hyphens, e.g.
+    // "en_US-alex-jones-medium" -> "Alex Jones (en_US)". Ids without that shape -> just titleized.
+    private static string NameFromId(string id)
+    {
+        var parts = id.Split('-');
+        if (parts.Length < 2)
+            return Titleize(id);
+        if (parts.Length == 2)
+            return $"{Titleize(parts[1])} ({parts[0]})";
+
+        var locale = parts[0];
+        var name = string.Join('-', parts[1..^1]); // everything between locale and the quality suffix
+        return $"{Titleize(name)} ({locale})";
+    }
+
+    // Builds a name from the Piper sidecar {id}.onnx.json when it carries metadata:
+    // "<Titleized dataset> (<language>)". Returns null if the file is missing, unreadable, or has
+    // no dataset field (as with our own exported voices, whose configs are stripped).
+    private static string? NameFromOnnxMetadata(string onnxPath)
+    {
+        try
+        {
+            var jsonPath = onnxPath + ".json";
+            if (!File.Exists(jsonPath))
+                return null;
+
+            using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+            var root = doc.RootElement;
+
+            if (root.ValueKind != JsonValueKind.Object
+                || !root.TryGetProperty("dataset", out var datasetEl)
+                || datasetEl.ValueKind != JsonValueKind.String)
+                return null;
+            var dataset = datasetEl.GetString();
+            if (string.IsNullOrWhiteSpace(dataset))
+                return null;
+
+            string? language = null;
+            if (root.TryGetProperty("language", out var langEl) && langEl.ValueKind == JsonValueKind.Object
+                && langEl.TryGetProperty("name_english", out var nameEl) && nameEl.ValueKind == JsonValueKind.String)
+                language = nameEl.GetString();
+
+            return string.IsNullOrWhiteSpace(language)
+                ? Titleize(dataset!)
+                : $"{Titleize(dataset!)} ({language})";
         }
+        catch
+        {
+            return null; // metadata is best-effort; fall back to the id
+        }
+    }
 
-        // Piper voice: the ONNX model file must be present.
-        return FindPiperModel(voiceId) != null;
+    // Loads the optional drop-in name override file (a JSON object of id -> display name). Looked
+    // up via COPYCAT_TTS_VOICE_NAMES, then voice-names.json in the voices directory or app dir.
+    // A missing or malformed file yields no overrides (best effort — never breaks voice loading).
+    private static IReadOnlyDictionary<string, string> LoadNameOverrides()
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var path = FindNameOverridesFile();
+            if (path == null)
+                return result;
+
+            using var doc = JsonDocument.Parse(File.ReadAllText(path));
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                return result;
+
+            foreach (var prop in doc.RootElement.EnumerateObject())
+                if (prop.Value.ValueKind == JsonValueKind.String)
+                {
+                    var name = prop.Value.GetString();
+                    if (!string.IsNullOrWhiteSpace(name))
+                        result[prop.Name] = name!;
+                }
+        }
+        catch
+        {
+            // best effort — a malformed override file must never break voice loading
+        }
+        return result;
+    }
+
+    private static string? FindNameOverridesFile()
+    {
+        var candidates = new List<string>();
+
+        var env = Environment.GetEnvironmentVariable("COPYCAT_TTS_VOICE_NAMES");
+        if (!string.IsNullOrWhiteSpace(env))
+            candidates.Add(env);
+
+        foreach (var dir in PiperVoiceDirectories())
+            candidates.Add(Path.Combine(dir, "voice-names.json"));
+        candidates.Add(Path.Combine(AppContext.BaseDirectory, "voice-names.json"));
+
+        return candidates.FirstOrDefault(File.Exists);
+    }
+
+    private static string Titleize(string s)
+    {
+        var words = s.Replace('_', ' ').Replace('-', ' ')
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(' ', words.Select(w => char.ToUpperInvariant(w[0]) + w[1..]));
     }
 
     public async Task<GeneratedVoiceClip> GenerateClip(string voiceId, string text)

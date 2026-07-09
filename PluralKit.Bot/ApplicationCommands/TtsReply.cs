@@ -53,9 +53,9 @@ public class ApplicationCommandTtsReply
         }
 
         var options = mostUsed
-            .Concat(ApplicationCommandTts.VoiceCatalog.Select(v => v.Id))
+            .Concat(_voices.Catalog.Select(v => v.Id))
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Select(id => ApplicationCommandTts.VoiceCatalog.FirstOrDefault(v =>
+            .Select(id => _voices.Catalog.FirstOrDefault(v =>
                 string.Equals(v.Id, id, StringComparison.OrdinalIgnoreCase)))
             .Where(v => !string.IsNullOrEmpty(v.Id) && _voices.IsVoiceAvailable(v.Id))
             .Take(MaxVoiceOptions)

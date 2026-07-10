@@ -4,11 +4,11 @@
     "net8.0": {
       "Microsoft.AspNetCore.Mvc.NewtonsoftJson": {
         "type": "Direct",
-        "requested": "[8.0.11, )",
-        "resolved": "8.0.11",
-        "contentHash": "XcfFd8e0g2M0mcAKVNgoHJtWYJfKrPntHhgqiZ1Ci37i3AEJbM0GHIa715i0UPSksiKmDxsJWXnM3rg8keF/Zg==",
+        "requested": "[8.0.28, )",
+        "resolved": "8.0.28",
+        "contentHash": "nOFHGrKz0w2uzzm0BvfkeIK9JwmKEBsNnZOhs0WWufAafyJxr4eEE+UjPOO4/Bj4c9a6Z58L39ZUGAKgNOmN7w==",
         "dependencies": {
-          "Microsoft.AspNetCore.JsonPatch": "8.0.11",
+          "Microsoft.AspNetCore.JsonPatch": "8.0.28",
           "Newtonsoft.Json": "13.0.3",
           "Newtonsoft.Json.Bson": "1.0.2"
         }
@@ -180,8 +180,8 @@
       },
       "Microsoft.AspNetCore.JsonPatch": {
         "type": "Transitive",
-        "resolved": "8.0.11",
-        "contentHash": "l1tFnQm2LtFE3M9YRM/bdwtxxCV50Y5jnN0LjliQH1sqvWsN46++Uu3QCJL9IdOweFvXSf3Shi7DI/Vc1jkdKA==",
+        "resolved": "8.0.28",
+        "contentHash": "q7z6lq3EZ/fJ8YykC/5HSEB0/7huCJB0DSftVUPQsc9GCxWRxbOWpxl2nXX7NPDhxnD8qAFMDHFd9jopzqPikA==",
         "dependencies": {
           "Microsoft.CSharp": "4.7.0",
           "Newtonsoft.Json": "13.0.3"
@@ -463,11 +463,6 @@
         "dependencies": {
           "System.IO.Pipelines": "5.0.1"
         }
-      },
-      "Serilog": {
-        "type": "Transitive",
-        "resolved": "4.1.0",
-        "contentHash": "u1aZI8HZ62LWlq5dZLFwm6jMax/sUwnWZSw5lkPsCt518cJBxFKoNmc7oSxe5aA5BgSkzy9rzwFGR/i/acnSPw=="
       },
       "Serilog.Extensions.Hosting": {
         "type": "Transitive",
@@ -840,6 +835,7 @@
           "NodaTime.Serialization.JsonNet": "[3.1.0, )",
           "Npgsql": "[9.0.2, )",
           "Npgsql.NodaTime": "[9.0.2, )",
+          "Serilog": "[4.1.0, )",
           "Serilog.Extensions.Logging": "[8.0.0, )",
           "Serilog.Formatting.Compact": "[3.0.0, )",
           "Serilog.NodaTime": "[3.0.0, )",
@@ -854,6 +850,9 @@
           "System.Interactive.Async": "[6.0.1, )",
           "ipnetwork2": "[3.0.667, )"
         }
+      },
+      "serilog": {
+        "type": "Project"
       }
     }
   }

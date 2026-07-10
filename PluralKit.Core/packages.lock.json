@@ -75,9 +75,9 @@
       },
       "IPNetwork2": {
         "type": "Direct",
-        "requested": "[3.0.667, )",
-        "resolved": "3.0.667",
-        "contentHash": "0GgNIm12cDtI0Kc8oaVbgSQgqQ+yJuOyf1oyJ9eQ+Xt4uQ/2ZTvoTf6KBuRxjWF7rTD+1AreUES5khMecGAuTg=="
+        "requested": "[4.3.0, )",
+        "resolved": "4.3.0",
+        "contentHash": "OKePsHlxZx6TMy3tL5grQp39hJ2kujpXgotdz+jW8Zfw6UcAvsIWPV+3/ZoE7roo8F54BtXyOJsdUTseAf2grA=="
       },
       "Microsoft.Extensions.Caching.Memory": {
         "type": "Direct",

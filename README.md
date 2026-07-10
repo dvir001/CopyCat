@@ -59,15 +59,30 @@ docker compose logs -f bot
 
 ### Piper voice models
 
-Set `COPYCAT_TTS_DOWNLOAD_VOICES=1` on the `bot` service (it is set by default in `docker-compose.yml`) to automatically download Piper voice models into the `piper_voices` volume on startup. Only voices with a downloaded model file will appear in the `/tts` autocomplete list.
+Set `COPYCAT_TTS_DOWNLOAD_VOICES=1` on the `bot` service (it is set by default in `docker-compose.yml`) to automatically download Piper voice models into `/data/piper` on the host at container startup. Only voices with a downloaded model file will appear in the `/tts` autocomplete list.
 
-To add a custom voice model, place the `.onnx` and `.onnx.json` files in the host path mapped to `/app/piper-voices` inside the container.
+To add a custom voice model, place the `.onnx` and `.onnx.json` files in `/data/piper` on the host (mounted into the container at `/app/piper-voices`).
+
+### CABAL audio assets
+
+The CABAL voice requires copyright-encumbered game audio files (`.aud`) that are **not** included in the repository. Supply them by placing the files in `/data/cabal` on the host before starting the bot:
+
+```
+/data/cabal/
+  01-n400.aud
+  nod-02.aud
+  nod-07b.aud
+  ... (other .aud files from the cabal/ directory)
+```
+
+The directory is bind-mounted into the container at `/app/cabal_audio`. Without these files the CABAL voice will fail at runtime; all other voices are unaffected.
 
 ### Data storage
 
-- **PostgreSQL** — all persistent data, stored in the `db_data` Docker volume.
+- **PostgreSQL** — all persistent data, stored in `/data/db` on the host.
 - **Redis** — internal state and transient data.
-- **Piper voices** — model files in the `piper_voices` Docker volume (mapped to `/opt/docker/copycat/piper_voices` on the host by default).
+- **Piper voices** — model files in `/data/piper` on the host (mounted into the container at `/app/piper-voices`).
+- **CABAL audio** — `.aud` game audio files in `/data/cabal` on the host (mounted into the container at `/app/cabal_audio`). Must be supplied manually (see above).
 
 ## Architecture
 

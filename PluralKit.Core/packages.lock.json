@@ -24,12 +24,13 @@
       },
       "AppFact.SerilogOpenSearchSink": {
         "type": "Direct",
-        "requested": "[0.0.8, )",
-        "resolved": "0.0.8",
-        "contentHash": "RI3lfmvAwhqrYwy5KPqsBT/tB/opSzeoVH2WUfvGKNBpl6ILCw/5wE8+19L+XMzBFVqgZ5QmkQ2PqTzG9I/ckA==",
+        "requested": "[0.0.15, )",
+        "resolved": "0.0.15",
+        "contentHash": "zIMlZw204cL5/+1R43kOaXDL5aRBfVaAYPuqQCX7NrRiuSKobYrwx+NxTMASyLE/zCnU62vg44+CmK0HjxQobw==",
         "dependencies": {
-          "OpenSearch.Client": "1.4.0",
-          "Serilog": "2.12.0"
+          "OpenSearch.Client": "1.8.0",
+          "Serilog": "[2.12.0, 4.2.0]",
+          "System.Text.Json": "8.0.5"
         }
       },
       "Autofac": {
@@ -483,16 +484,16 @@
       },
       "OpenSearch.Client": {
         "type": "Transitive",
-        "resolved": "1.4.0",
-        "contentHash": "91TXm+I8PzxT0yxkf0q5Quee5stVcIFys56pU8+M3+Kiakx+aiaTAlZJHfA3Oy6dMJndNkVm37IPKYCqN3dS4g==",
+        "resolved": "1.8.0",
+        "contentHash": "OoVHys2QZpnstwA9WliaFjpV/LEs5EbKPRjy8ww8cRxJMNzHpHTwUJBJ/N8qHhP/riiTHAtNUGLvhcoBXJkyTw==",
         "dependencies": {
-          "OpenSearch.Net": "1.4.0"
+          "OpenSearch.Net": "1.8.0"
         }
       },
       "OpenSearch.Net": {
         "type": "Transitive",
-        "resolved": "1.4.0",
-        "contentHash": "xCM6m3aArN9gXIl2DvWXaDlbpjOBbgMeRPsAM7s1eDbWhu8wKNyfPNKSfep4JlYXkZ7N6Oi/+lmi+G3/SpcqlQ==",
+        "resolved": "1.8.0",
+        "contentHash": "X4n+b3Eq9u7i5qXqcSPMJRpoH7qljwCIAv2t6h46R4JuObzx28VeFG0cGoy+y4azqScfKp2t67JeuHB1Mo+4Uw==",
         "dependencies": {
           "Microsoft.CSharp": "4.7.0",
           "System.Buffers": "4.5.1",

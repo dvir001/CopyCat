@@ -23,7 +23,7 @@ data-encoding = "2.5.0"
 gif = "0.13.1"
 image = { version = "0.25.6", default-features = false, features = ["gif", "jpeg", "png", "webp", "tiff"] }
 form_urlencoded = "1.2.1"
-rust-s3 = { version = "0.33.0", default-features = false, features = ["tokio-rustls-tls"] }
+rust-s3 = { version = "0.37.2", default-features = false, features = ["tokio-rustls-tls"] }
 sha2 = "0.11.0"
 thiserror = "2.0.12"
 webp = "0.3.1"

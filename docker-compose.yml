@@ -42,7 +42,8 @@ services:
       dockerfile: ci/Dockerfile.dotnet
     command: ["bin/PluralKit.Bot.dll"]
     volumes:
-      - "/opt/docker/copycat/piper_voices:/app/piper-voices"
+      - "/data/piper:/app/piper-voices"
+      - "/data/cabal:/app/cabal_audio"
     environment:
       - "COPYCAT_TTS_DOWNLOAD_VOICES=1"
       - "PluralKit__Database=Host=db;Username=postgres;Password=postgres;Database=postgres"
@@ -87,7 +88,7 @@ services:
   db:
     image: postgres:17-alpine
     volumes:
-      - "db_data:/var/lib/postgresql/data"
+      - "/data/db:/var/lib/postgresql/data"
     environment:
       - "POSTGRES_PASSWORD=postgres"
     restart: unless-stopped
@@ -103,5 +104,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  db_data:
-  piper_voices:
+  db:
+  piper:
+  cabal:

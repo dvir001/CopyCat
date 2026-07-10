@@ -37,5 +37,7 @@ recipe.json
 .nix-process-compose
 result
 
-# CABAL game audio assets (copyrighted, supply manually)
-PluralKit.Bot/Tools/Tts/cabal_audio/
+# audio assets and db
+data/cabal/
+data/piper/
+data/db/

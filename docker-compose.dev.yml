@@ -1,0 +1,38 @@
+# Local development override — builds all images from source instead of pulling from GHCR.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Or add to your shell: export COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml
+
+services:
+
+  migrate:
+    image: ""
+    build:
+      context: .
+      dockerfile: ci/Dockerfile.rust
+      args:
+        BINARIES: migrate
+        CARGO_JOBS: 2
+
+  register-commands:
+    build:
+      context: .
+      dockerfile: ci/Dockerfile.rust
+      args:
+        BINARIES: app-commands
+        CARGO_JOBS: 2
+
+  bot:
+    image: ""
+    build:
+      context: .
+      dockerfile: ci/Dockerfile.dotnet
+
+  gateway:
+    image: ""
+    build:
+      context: .
+      dockerfile: ci/Dockerfile.rust
+      args:
+        BINARIES: gateway
+        CARGO_JOBS: 2

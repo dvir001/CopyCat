@@ -1,12 +1,7 @@
 services:
 
   migrate:
-    build:
-      context: .
-      dockerfile: ci/Dockerfile.rust
-      args:
-        BINARIES: migrate
-        CARGO_JOBS: 2
+    image: ghcr.io/${GHCR_OWNER}/migrate:latest
     environment:
       - RUST_LOG=info
       - pluralkit__db__data_db_uri=postgresql://postgres:postgres@db:5432/postgres
@@ -37,9 +32,7 @@ services:
     restart: "no"
 
   bot:
-    build:
-      context: .
-      dockerfile: ci/Dockerfile.dotnet
+    image: ghcr.io/${GHCR_OWNER}/copycat:latest
     command: ["bin/PluralKit.Bot.dll"]
     volumes:
       - "/data/piper:/app/piper-voices"
@@ -61,12 +54,7 @@ services:
         condition: service_completed_successfully
 
   gateway:
-    build:
-      context: .
-      dockerfile: ci/Dockerfile.rust
-      args:
-        BINARIES: gateway
-        CARGO_JOBS: 2
+    image: ghcr.io/${GHCR_OWNER}/gateway:latest
     command: ["/gateway"]
     environment:
       - RUST_LOG=info

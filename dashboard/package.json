@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@sentry/browser": "^10.65.0",
-    "@sentry/tracing": "^6.19.5",
+    "@sentry/tracing": "^7.120.4",
     "@types/twemoji": "^13.1.2",
     "axios": "^1.16.0",
     "bootstrap": "^5.1.3",

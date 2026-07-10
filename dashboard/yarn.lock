@@ -131,6 +131,7 @@
   version "0.25.12"
   resolved "https://registry.yarnpkg.com/@esbuild/win32-x64/-/win32-x64-0.25.12.tgz#9bdad8176be7811ad148d1f8772359041f46c6c5"
   integrity sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA==
+<<<<<<< HEAD
 
 "@jridgewell/gen-mapping@^0.3.5":
   version "0.3.13"
@@ -147,6 +148,8 @@
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.5"
     "@jridgewell/trace-mapping" "^0.3.24"
+=======
+>>>>>>> origin/main
 
 "@jridgewell/resolve-uri@3.1.0":
   version "3.1.0"
@@ -420,7 +423,11 @@
   resolved "https://registry.yarnpkg.com/@tsconfig/svelte/-/svelte-3.0.0.tgz#b06e059209f04c414de0069f2f0e2796d979fc6f"
   integrity sha512-pYrtLtOwku/7r1i9AMONsJMVYAtk3hzOfiGNekhtq5tYBGA7unMve8RvUclKLMT3PrihvJqUmzsRGh0RP84hKg==
 
+<<<<<<< HEAD
 "@types/estree@1.0.9", "@types/estree@^1.0.5", "@types/estree@^1.0.6":
+=======
+"@types/estree@1.0.9":
+>>>>>>> origin/main
   version "1.0.9"
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.9.tgz#cf3f0e876d7bee15a93ab925b82bf570a3904a24"
   integrity sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==
@@ -523,11 +530,14 @@ axios@^1.16.0:
     follow-redirects "^1.16.0"
     form-data "^4.0.5"
     proxy-from-env "^2.1.0"
+<<<<<<< HEAD
 
 axobject-query@^4.1.0:
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/axobject-query/-/axobject-query-4.1.0.tgz#28768c76d0e3cff21bc62a9e2d0b6ac30042a1ee"
   integrity sha512-qIj0G9wZbMGNLjLmg1PT6v2mE9AH2zlnADJD/2tC6E00hgmhUOfEB6greHPAfLRSufHqROIUTkw6E+M3lH0PTQ==
+=======
+>>>>>>> origin/main
 
 balanced-match@^1.0.0:
   version "1.0.2"
@@ -1295,6 +1305,11 @@ picomatch@^2.0.4, picomatch@^2.2.1, picomatch@^2.3.1:
   version "2.3.2"
   resolved "https://registry.yarnpkg.com/picomatch/-/picomatch-2.3.2.tgz#5a942915e26b372dc0f0e6753149a16e6b1c5601"
   integrity sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA==
+
+picomatch@^4.0.2, picomatch@^4.0.4:
+  version "4.0.5"
+  resolved "https://registry.yarnpkg.com/picomatch/-/picomatch-4.0.5.tgz#51ea57a17d86f605f81039595fbc40ed06a55fab"
+  integrity sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==
 
 picomatch@^4.0.2, picomatch@^4.0.4:
   version "4.0.5"

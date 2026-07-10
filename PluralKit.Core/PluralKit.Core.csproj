@@ -23,7 +23,7 @@
         <PackageReference Include="App.Metrics" Version="4.3.0" />
         <PackageReference Include="App.Metrics.Reporting.InfluxDB" Version="4.3.0" />
         <PackageReference Include="AppFact.SerilogOpenSearchSink" Version="0.0.15" />
-        <PackageReference Include="Autofac" Version="8.1.1" />
+        <PackageReference Include="Autofac" Version="9.3.1" />
         <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
         <PackageReference Include="Dapper" Version="2.1.35" />
         <PackageReference Include="Dapper.Contrib" Version="2.0.78" />

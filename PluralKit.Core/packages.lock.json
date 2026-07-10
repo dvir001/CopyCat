@@ -35,11 +35,11 @@
       },
       "Autofac": {
         "type": "Direct",
-        "requested": "[8.1.1, )",
-        "resolved": "8.1.1",
-        "contentHash": "lhHjVB/XJtxPDUQ/FAHWAC7Spu+P9TNfDbyx2W0ABqD1eTRo7TkcZ7l7Oq1S5pKNg7NXswdk9uH73qbOzSwQFA==",
+        "requested": "[9.3.1, )",
+        "resolved": "9.3.1",
+        "contentHash": "WCDp+kYLr+r9enkRDt4PYRzj321P/c+8SICxHhWo9gkVNqE9EziiYyUMa7A0ce27SK6qgRWYCK0zp19J2ykVHw==",
         "dependencies": {
-          "System.Diagnostics.DiagnosticSource": "8.0.1"
+          "System.Diagnostics.DiagnosticSource": "10.0.0"
         }
       },
       "Autofac.Extensions.DependencyInjection": {

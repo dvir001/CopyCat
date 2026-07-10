@@ -4,10 +4,16 @@ on:
     paths:
       - .github/workflows/rust.yml
       - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
   pull_request:
     paths:
       - .github/workflows/rust.yml
       - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
 
 jobs:
   rustfmt:

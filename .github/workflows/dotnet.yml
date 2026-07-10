@@ -8,6 +8,7 @@ on:
     - 'PluralKit.API/**'
     - 'PluralKit.Bot/**'
     - 'PluralKit.Core/**'
+    - 'PluralKit.Tests/**'
   pull_request:
     paths:
     - .github/workflows/dotnet.yml
@@ -15,6 +16,7 @@ on:
     - 'PluralKit.API/**'
     - 'PluralKit.Bot/**'
     - 'PluralKit.Core/**'
+    - 'PluralKit.Tests/**'
 
 jobs:
   test:
@@ -26,7 +28,7 @@ jobs:
           submodules: recursive
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
@@ -40,7 +42,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 

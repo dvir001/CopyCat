@@ -20,8 +20,8 @@ Voices are split into two backends:
 
 ### Requirements
 
-- Docker and Docker Compose
-- A Discord application with a bot token and client ID
+- Docker and Docker Compose.
+- A Discord application with a bot token and client ID.
 
 ### Setup
 

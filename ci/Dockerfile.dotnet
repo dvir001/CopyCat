@@ -23,7 +23,7 @@ ARG DOTNET_BUILD_MAXCPU=1
 RUN dotnet build PluralKit.Bot/PluralKit.Bot.csproj -c Release -m:${DOTNET_BUILD_MAXCPU} -o bin
 
 # Build runtime stage (doesn't include SDK)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 LABEL org.opencontainers.image.source = "https://github.com/PluralKit/PluralKit"
 
 # TTS runtime: Python + ffmpeg for /tts local voice generation (morshu/cabal via pydub)

@@ -10,7 +10,7 @@
   "devDependencies": {
     "@vuepress/plugin-back-to-top": "1.8.2",
     "markdown-it-custom-header-link": "^1.0.5",
-    "vuepress": "1.8.2",
+    "vuepress": "1.9.10",
     "vuepress-plugin-clean-urls": "1.1.2",
     "vuepress-plugin-dehydrate": "1.1.5"
   },

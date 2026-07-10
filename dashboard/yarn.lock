@@ -335,26 +335,44 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.62.2.tgz#3671ce3f9b928d5c01f879792d5c0b60ae14d4ad"
   integrity sha512-BfzEnDJOt9T8M989/lA37EcJgat01wLRnoi5dQf3QzOH7jzpqTAzdDbVfRljVr5r+jzKqpbHeyOfAaXxAd0PAA==
 
-"@sentry/browser@^6.19.5":
-  version "6.19.5"
-  resolved "https://registry.yarnpkg.com/@sentry/browser/-/browser-6.19.5.tgz#77d4c860ab86f89a41d4b15a8eafb42417c47888"
-  integrity sha512-dmk15tTm9J+6v/N8nSoc7dUnpS/EJdwfOd3YSRk2iaJLJkWvJ7ELRe5SnH4MnK89Qpw7FKC5OjB977TeK11QAA==
+"@sentry/browser-utils@10.65.0":
+  version "10.65.0"
+  resolved "https://registry.yarnpkg.com/@sentry/browser-utils/-/browser-utils-10.65.0.tgz#e3b67c6b9dd05dad2ad7eee82ad873bfc9f8ab12"
+  integrity sha512-4J0mkfNJAGUOkpg1ZggizyftFTn9N20b+Jl87UnWsDUkNG0Ic1l/FIzMPTVxXrAnhBGu0ULO0TFWMoQ5s3QtZw==
   dependencies:
-    "@sentry/core" "6.19.5"
-    "@sentry/types" "6.19.5"
-    "@sentry/utils" "6.19.5"
-    tslib "^1.9.3"
+    "@sentry/conventions" "^0.15.1"
+    "@sentry/core" "10.65.0"
 
-"@sentry/core@6.19.5":
-  version "6.19.5"
-  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-6.19.5.tgz#b8e0d54a22f588f8cbe2740913b8d06ec76fb1bb"
-  integrity sha512-PSrJYdhti5IWBo+1hLn4olRPQXJxsnkrB5X7Wk2peEYKGk6Vx98B9h7lQ4Tgsg9sUUOH4HsmNwU2kZKtMRVB5Q==
+"@sentry/browser@^10.65.0":
+  version "10.65.0"
+  resolved "https://registry.yarnpkg.com/@sentry/browser/-/browser-10.65.0.tgz#e2734a2effe051a9005afdd914fc07c68262f627"
+  integrity sha512-XUDDsx0qxzeIlcOu1fDEqTcDl0eiOqghsgV+ReuuNP4jYjZ9kUQxE3rXWM5mlT1pBi4VaQ4FHqvQZZrRXy+oDw==
   dependencies:
-    "@sentry/hub" "6.19.5"
-    "@sentry/minimal" "6.19.5"
-    "@sentry/types" "6.19.5"
-    "@sentry/utils" "6.19.5"
-    tslib "^1.9.3"
+    "@sentry/browser-utils" "10.65.0"
+    "@sentry/conventions" "^0.15.1"
+    "@sentry/core" "10.65.0"
+    "@sentry/feedback" "10.65.0"
+    "@sentry/replay" "10.65.0"
+    "@sentry/replay-canvas" "10.65.0"
+
+"@sentry/conventions@^0.15.1":
+  version "0.15.1"
+  resolved "https://registry.yarnpkg.com/@sentry/conventions/-/conventions-0.15.1.tgz#5b8888862d1e444678938f5afdd7842bca42f7cc"
+  integrity sha512-ZLP8bRdMON3prWE2tJyImuYscCxdcJeIPIhrOs/rgyFm3C1nCh1B6gdvPj3AZ5zW08oSFFCsq7T+tYEW3h8MNA==
+
+"@sentry/core@10.65.0":
+  version "10.65.0"
+  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-10.65.0.tgz#a98cfd6e138d9658dd42d050902837ff591452e8"
+  integrity sha512-3aqtmM5NgNGo45BNaaBzi0LPQZAw//NEL4HKS5fXm12pJMa4KEkze8DEKnkTEIrGnWaOJKamecHKlnNg/Mqf/Q==
+  dependencies:
+    "@sentry/conventions" "^0.15.1"
+
+"@sentry/feedback@10.65.0":
+  version "10.65.0"
+  resolved "https://registry.yarnpkg.com/@sentry/feedback/-/feedback-10.65.0.tgz#a9418cc77c835e3a74cdc3fad2fb1098ecbc3887"
+  integrity sha512-ck8h7wgd3F3bYNk0v1OgohmyLBeXcKxqlfBJRtQq4k6KZUq+pXimOG7ckNguVMYjCo3PEfuG+ckKc21yqotKug==
+  dependencies:
+    "@sentry/core" "10.65.0"
 
 "@sentry/hub@6.19.5":
   version "6.19.5"
@@ -373,6 +391,22 @@
     "@sentry/hub" "6.19.5"
     "@sentry/types" "6.19.5"
     tslib "^1.9.3"
+
+"@sentry/replay-canvas@10.65.0":
+  version "10.65.0"
+  resolved "https://registry.yarnpkg.com/@sentry/replay-canvas/-/replay-canvas-10.65.0.tgz#5ff20832ae8acacd38fe7f154dd7ac6c6cad1af2"
+  integrity sha512-A7X3RVk1Gk+knK8Ip/2EjejckNCLgCfRZo6eGlsy6qyz904KBpYmys1a0o7QkzFRjhIndjHAfcVxwt6jSLJlrQ==
+  dependencies:
+    "@sentry/core" "10.65.0"
+    "@sentry/replay" "10.65.0"
+
+"@sentry/replay@10.65.0":
+  version "10.65.0"
+  resolved "https://registry.yarnpkg.com/@sentry/replay/-/replay-10.65.0.tgz#8ed1255349e32faeac786e4ca2f4c2f56b98e64e"
+  integrity sha512-aW988CcQBNArbOMzOFOziipHz6uQyXSa4i5CPWsu+nhVPTJHafosi5Lv9n6NM/icDX5e23VdnX6mZd8SyJuo8A==
+  dependencies:
+    "@sentry/browser-utils" "10.65.0"
+    "@sentry/core" "10.65.0"
 
 "@sentry/tracing@^6.19.5":
   version "6.19.5"

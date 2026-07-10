@@ -20,7 +20,7 @@
     "vite": "^6.4.3"
   },
   "dependencies": {
-    "@sentry/browser": "^6.19.5",
+    "@sentry/browser": "^10.65.0",
     "@sentry/tracing": "^6.19.5",
     "@types/twemoji": "^13.1.2",
     "axios": "^1.16.0",

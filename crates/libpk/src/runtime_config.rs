@@ -1,16 +1,16 @@
-use fred::{clients::RedisPool, interfaces::HashesInterface};
+use fred::{clients::Pool, interfaces::HashesInterface};
 use std::collections::HashMap;
 use tokio::sync::RwLock;
 use tracing::info;
 
 pub struct RuntimeConfig {
-    redis: RedisPool,
+    redis: Pool,
     settings: RwLock<HashMap<String, String>>,
     redis_key: String,
 }
 
 impl RuntimeConfig {
-    pub async fn new(redis: RedisPool, component_key: String) -> anyhow::Result<Self> {
+    pub async fn new(redis: Pool, component_key: String) -> anyhow::Result<Self> {
         let redis_key = format!("remote_config:{component_key}");
 
         let mut c = RuntimeConfig {

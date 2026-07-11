@@ -4,7 +4,6 @@ using Serilog.Events;
 using Serilog.Formatting;
 using Serilog.Formatting.Json;
 using Serilog.Parsing;
-using Serilog.Rendering;
 
 // Customized Serilog JSON output for PluralKit
 
@@ -202,8 +201,8 @@ public sealed class CustomJsonFormatter: ITextFormatter
                 // Caller ensures that `tokensWithFormat` contains only property tokens that have non-null `Format`s.
                 WriteNameValuePair("Format", format.Format!, ref elementDelimiter, output);
 
-                using var sw = ReusableStringWriter.GetOrCreate();
-                MessageTemplateRenderer.RenderPropertyToken(format, properties, sw, null, isLiteral: true, isJson: false);
+                using var sw = new StringWriter();
+                format.Render(properties, sw);
                 WriteNameValuePair("Rendering", sw.ToString(), ref elementDelimiter, output);
 
                 output.Write('}');

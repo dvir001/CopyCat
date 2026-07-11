@@ -6,7 +6,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use fred::{clients::RedisPool, prelude::LuaInterface, util::sha1_hash};
+use fred::{clients::Pool, prelude::LuaInterface, util::sha1_hash};
 use metrics::counter;
 use tracing::{debug, error, info};
 
@@ -51,7 +51,7 @@ impl RatelimitType {
 }
 
 pub async fn do_request_ratelimited(
-    State(redis): State<Option<RedisPool>>,
+    State(redis): State<Option<Pool>>,
     request: Request,
     next: Next,
 ) -> Response {

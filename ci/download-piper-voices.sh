@@ -4,7 +4,7 @@
 # run on every container start. Set COPYCAT_TTS_VOICES_DIR to override the target.
 set -eu
 
-DEST="${COPYCAT_TTS_VOICES_DIR:-/app/piper-voices}"
+DEST="${COPYCAT_TTS_VOICES_DIR:-/app/piper}"
 BASE="https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0"
 
 mkdir -p "$DEST"

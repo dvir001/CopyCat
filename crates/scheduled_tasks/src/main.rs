@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use croner::Cron;
-use fred::prelude::RedisPool;
+use fred::clients::Pool;
 use sqlx::PgPool;
 use tokio::task::JoinSet;
 use tracing::{debug, error, info};
@@ -15,7 +15,7 @@ pub struct AppCtx {
     pub data: PgPool,
     pub messages: PgPool,
     pub stats: PgPool,
-    pub redis: RedisPool,
+    pub redis: Pool,
 
     pub discord: Arc<twilight_http::Client>,
 }

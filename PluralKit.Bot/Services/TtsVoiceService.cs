@@ -118,7 +118,7 @@ public class TtsVoiceService
             _logger.Debug("TTS catalog refreshed: {Count} voice(s)", voices.Count);
 
         if (voices.Count == 0)
-            _logger.Warning("No TTS voices found — is the piper-voices directory populated?");
+            _logger.Warning("No TTS voices found — is the piper directory populated?");
     }
 
     public bool IsVoiceAvailable(string voiceId) =>
@@ -136,8 +136,8 @@ public class TtsVoiceService
     {
         var candidates = new[]
         {
-            "/app/piper-voices",
-            Path.Combine(AppContext.BaseDirectory, "piper-voices"),
+            "/app/piper",
+            Path.Combine(AppContext.BaseDirectory, "piper"),
         };
         return candidates.Where(Directory.Exists).Distinct();
     }
@@ -447,8 +447,8 @@ public class TtsVoiceService
     {
         var candidates = new[]
         {
-            $"/app/piper-voices/{voiceId}.onnx",
-            Path.Combine(AppContext.BaseDirectory, "piper-voices", $"{voiceId}.onnx"),
+            $"/app/piper/{voiceId}.onnx",
+            Path.Combine(AppContext.BaseDirectory, "piper", $"{voiceId}.onnx"),
         };
         return candidates.FirstOrDefault(global::System.IO.File.Exists);
     }

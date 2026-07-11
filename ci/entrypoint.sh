@@ -1,6 +1,6 @@
 #!/bin/sh
 # Entry point for the .NET images. When COPYCAT_TTS_DOWNLOAD_VOICES=1 (set on the
-# bot service, which mounts the piper-voices volume), download any missing Piper
+# bot service, which mounts the piper volume), download any missing Piper
 # voice models into the mounted folder before starting. For all other services the
 # download is skipped so their ephemeral filesystem is not filled.
 set -e

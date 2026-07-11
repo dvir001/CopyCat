@@ -14,6 +14,27 @@ using Polly.Timeout;
 
 namespace PluralKit.Bot;
 
+public static class AsyncEnumerableExtensions
+{
+    /// <summary>
+    /// Projects each element of an async sequence into a new form by incorporating element index and
+    /// accumulated state, yielding each intermediate accumulator value (like Aggregate, but streaming).
+    /// Equivalent to System.Interactive.Async's Scan operator.
+    /// </summary>
+    public static async IAsyncEnumerable<TAccumulate> Scan<TSource, TAccumulate>(
+        this IAsyncEnumerable<TSource> source,
+        TAccumulate seed,
+        Func<TAccumulate, TSource, TAccumulate> accumulator)
+    {
+        var current = seed;
+        await foreach (var item in source)
+        {
+            current = accumulator(current, item);
+            yield return current;
+        }
+    }
+}
+
 public static class MiscUtils
 {
     public static string ProxyTagsString(this PKMember member, string separator = ", ") =>

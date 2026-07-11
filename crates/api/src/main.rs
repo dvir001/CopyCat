@@ -26,7 +26,7 @@ mod util;
 #[derive(Clone)]
 pub struct ApiContext {
     pub db: sqlx::postgres::PgPool,
-    pub redis: fred::clients::RedisPool,
+    pub redis: fred::clients::Pool,
 
     rproxy_uri: String,
     rproxy_client: Client<HttpConnector, Body>,

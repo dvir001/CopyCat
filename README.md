@@ -13,7 +13,7 @@ CopyCat is a Discord bot that lets you send messages and voice clips as yourself
 
 Voices are split into two backends:
 
-- **Piper TTS** — neural, offline voices covering many languages. Models are downloaded to a mounted volume at container startup (`/app/piper-voices`). Only voices whose `.onnx` model file is present on disk appear in autocomplete.
+- **Piper TTS** — neural, offline voices covering many languages. Models are downloaded to a mounted volume at container startup (`/app/piper`). Only voices whose `.onnx` model file is present on disk appear in autocomplete.
 - **Python bridge** — Morshu (MorshuTalk) and CABAL (TiberianSunCABAL-Talk). Require their vendor repos to be cloned into `Tools/Tts/vendors/` inside the container. Only appear in autocomplete when their vendor directory is found.
 
 ## Self-hosting
@@ -61,7 +61,7 @@ docker compose logs -f bot
 
 Set `COPYCAT_TTS_DOWNLOAD_VOICES=1` on the `bot` service (it is set by default in `docker-compose.yml`) to automatically download Piper voice models into `/data/piper` on the host at container startup. Only voices with a downloaded model file will appear in the `/tts` autocomplete list.
 
-To add a custom voice model, place the `.onnx` and `.onnx.json` files in `/data/piper` on the host (mounted into the container at `/app/piper-voices`).
+To add a custom voice model, place the `.onnx` and `.onnx.json` files in `/data/piper` on the host (mounted into the container at `/app/piper`).
 
 ### CABAL audio assets
 
@@ -75,14 +75,14 @@ The CABAL voice requires copyright-encumbered game audio files (`.aud`) that are
   ... (other .aud files from the cabal/ directory)
 ```
 
-The directory is bind-mounted into the container at `/app/cabal_audio`. Without these files the CABAL voice will fail at runtime; all other voices are unaffected.
+The directory is bind-mounted into the container at `/app/cabal`. Without these files the CABAL voice will fail at runtime; all other voices are unaffected.
 
 ### Data storage
 
 - **PostgreSQL** — all persistent data, stored in `/data/db` on the host.
 - **Redis** — internal state and transient data.
-- **Piper voices** — model files in `/data/piper` on the host (mounted into the container at `/app/piper-voices`).
-- **CABAL audio** — `.aud` game audio files in `/data/cabal` on the host (mounted into the container at `/app/cabal_audio`). Must be supplied manually (see above).
+- **Piper voices** — model files in `/data/piper` on the host (mounted into the container at `/app/piper`).
+- **CABAL audio** — `.aud` game audio files in `/data/cabal` on the host (mounted into the container at `/app/cabal`). Must be supplied manually (see above).
 
 ## Architecture
 

@@ -31,13 +31,40 @@ def generate_morshu(text: str, output_file: str) -> None:
     audio.export(output_file, format="wav")
 
 
+def resolve_cabal_audio_dir() -> str:
+    for candidate in ("/app/cabal",):
+        if os.path.isdir(candidate):
+            return candidate
+    return "/app/cabal"
+
+
+def configure_cabal_paths(cabal_dir: str) -> None:
+    vendors = pathlib.Path(__file__).resolve().parent / "vendors"
+    config_path = vendors / "TiberianSunCABAL-Talk" / "tibsuncabal_talk" / "config.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        "speech02: {0}\ne01vox01: {0}\nsidecd02: {0}\n".format(cabal_dir),
+        encoding="utf-8",
+    )
+
+
 def generate_cabal(text: str, output_file: str) -> None:
     from tibsuncabal_talk.tibsuncabal import TibSunCabal
     from pydub import AudioSegment
     from pydub.effects import normalize, low_pass_filter
 
-    cabal = TibSunCabal()
-    audio = cabal.load_text(text)
+    cabal_dir = resolve_cabal_audio_dir()
+    configure_cabal_paths(cabal_dir)
+
+    try:
+        cabal = TibSunCabal()
+        audio = cabal.load_text(text)
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            f"CABAL audio file not found: {exc.filename}. "
+            "Mount the .aud files from speech02.mix, e01vox01.mix and sidecd02.mix "
+            f"into {cabal_dir}."
+        ) from exc
     if audio is False:
         raise RuntimeError("CABAL generator returned no audio")
 

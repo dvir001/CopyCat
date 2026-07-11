@@ -35,8 +35,8 @@ services:
     image: ghcr.io/${GHCR_OWNER}/copycat:latest
     command: ["bin/PluralKit.Bot.dll"]
     volumes:
-      - "/data/piper:/app/piper-voices"
-      - "/data/cabal:/app/cabal_audio"
+      - "/data/piper:/app/piper"
+      - "/data/cabal:/app/cabal"
     environment:
       - "COPYCAT_TTS_DOWNLOAD_VOICES=1"
       - "PluralKit__Database=Host=db;Username=postgres;Password=postgres;Database=postgres"

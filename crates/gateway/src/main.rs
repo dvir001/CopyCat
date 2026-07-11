@@ -4,7 +4,7 @@
 use chrono::Timelike;
 use discord::gateway::cluster_config;
 use event_awaiter::EventAwaiter;
-use fred::{clients::RedisPool, interfaces::*};
+use fred::{clients::Pool, interfaces::*};
 use libpk::{runtime_config::RuntimeConfig, state::ShardStateEvent};
 use reqwest::{ClientBuilder, StatusCode};
 use std::{sync::Arc, time::Duration, vec::Vec};
@@ -238,7 +238,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn scheduled_task(redis: RedisPool, senders: Vec<(ShardId, MessageSender)>) {
+async fn scheduled_task(redis: Pool, senders: Vec<(ShardId, MessageSender)>) {
     const BASE_STATUS: &str = "Use /s and /tts";
 
     loop {

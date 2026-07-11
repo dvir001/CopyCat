@@ -1,6 +1,6 @@
 use fred::{
-    clients::RedisPool,
-    error::RedisError,
+    clients::Pool,
+    error::Error,
     interfaces::KeysInterface,
     types::{Expiration, SetOptions},
 };
@@ -10,7 +10,7 @@ use tokio::sync::oneshot;
 use tracing::{error, info};
 use twilight_gateway::queue::Queue;
 
-pub fn new(redis: RedisPool) -> RedisQueue {
+pub fn new(redis: Pool) -> RedisQueue {
     RedisQueue {
         redis,
         concurrency: libpk::config.discord().max_concurrency,
@@ -19,7 +19,7 @@ pub fn new(redis: RedisPool) -> RedisQueue {
 
 #[derive(Clone)]
 pub struct RedisQueue {
-    pub redis: RedisPool,
+    pub redis: Pool,
     pub concurrency: u32,
 }
 
@@ -49,13 +49,13 @@ impl Queue for RedisQueue {
 const EXPIRY: i64 = 6;
 const RETRY_INTERVAL: u64 = 500;
 
-async fn request_inner(redis: RedisPool, concurrency: u32, shard_id: u32, tx: oneshot::Sender<()>) {
+async fn request_inner(redis: Pool, concurrency: u32, shard_id: u32, tx: oneshot::Sender<()>) {
     let bucket = shard_id % concurrency;
     let key = format!("pluralkit:identify:{}", bucket);
 
     info!(shard_id, bucket, "waiting for allowance...");
     loop {
-        let done: Result<Option<String>, RedisError> = redis
+        let done: Result<Option<String>, Error> = redis
             .set(
                 key.to_string(),
                 "1",

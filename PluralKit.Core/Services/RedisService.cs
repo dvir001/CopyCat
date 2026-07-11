@@ -39,7 +39,7 @@ public static class RedisExt
         var data = await database.StringGetAsync(key);
         if (data == RedisValue.Null) return null;
 
-        if (ulong.TryParse(data, out var value))
+        if (ulong.TryParse((string?)data, out var value))
             return value;
 
         return null;

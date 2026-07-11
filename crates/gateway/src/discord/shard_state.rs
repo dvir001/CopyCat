@@ -1,4 +1,4 @@
-use fred::{clients::RedisPool, interfaces::HashesInterface};
+use fred::{clients::Pool, interfaces::HashesInterface};
 use metrics::{counter, gauge};
 use tokio::sync::RwLock;
 use tracing::info;
@@ -11,11 +11,11 @@ use libpk::state::ShardState;
 use super::gateway::cluster_config;
 
 pub struct ShardStateManager {
-    redis: RedisPool,
+    redis: Pool,
     shards: RwLock<HashMap<u32, ShardState>>,
 }
 
-pub fn new(redis: RedisPool) -> ShardStateManager {
+pub fn new(redis: Pool) -> ShardStateManager {
     ShardStateManager {
         redis: redis,
         shards: RwLock::new(HashMap::new()),

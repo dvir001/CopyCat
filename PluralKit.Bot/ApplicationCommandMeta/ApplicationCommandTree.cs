@@ -9,7 +9,7 @@ public partial class ApplicationCommandTree
 {
     public static async Task RegisterGlobalCommands(DiscordApiClient rest, ulong applicationId)
     {
-        var commands = new[] { Say, Tts, ProxiedMessageDelete, SayContextMenu, TtsReply }
+        var commands = new[] { Say, Tts, TtsGroup, ProxiedMessageDelete, SayContextMenu, TtsReply }
             .Select(command => new ApplicationCommandRequest
             {
                 Type = command.Type,
@@ -28,6 +28,8 @@ public partial class ApplicationCommandTree
             return ctx.Execute<ApplicationCommandSay>(Say, m => m.SendAsInvoker(ctx));
         else if (ctx.Event.Data!.Name == Tts.Name)
             return ctx.Execute<ApplicationCommandTts>(Tts, m => m.SendAsInvoker(ctx));
+        else if (ctx.Event.Data!.Name == TtsGroup.Name)
+            return ctx.Execute<ApplicationCommandTts>(TtsGroup, m => m.SendGroupAsInvoker(ctx));
         else if (ctx.Event.Data!.Name == ProxiedMessageDelete.Name)
             return ctx.Execute<ApplicationCommandProxiedMessage>(ProxiedMessageDelete, m => m.DeleteMessage(ctx));
         else if (ctx.Event.Data!.Name == SayContextMenu.Name)
@@ -53,6 +55,8 @@ public partial class ApplicationCommandTree
     {
         if (ctx.Event.Data!.Name == Tts.Name)
             return ctx.ExecuteAutocomplete<ApplicationCommandTts>(Tts, m => m.Autocomplete(ctx));
+        if (ctx.Event.Data!.Name == TtsGroup.Name)
+            return ctx.ExecuteAutocomplete<ApplicationCommandTts>(TtsGroup, m => m.AutocompleteGroup(ctx));
 
         return null;
     }

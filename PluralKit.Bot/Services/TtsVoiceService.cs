@@ -40,6 +40,8 @@ internal readonly record struct VoiceDefinition(string Id, string Name);
 
 public class TtsVoiceService
 {
+    private static readonly TimeSpan ExternalProcessTimeout = TimeSpan.FromMinutes(2);
+
     private readonly ILogger _logger;
     private HashSet<string> _availableVoiceIds = new(StringComparer.OrdinalIgnoreCase);
     private IReadOnlyList<VoiceDefinition> _catalog = Array.Empty<VoiceDefinition>();
@@ -280,6 +282,141 @@ public class TtsVoiceService
         return await GeneratePiperClip(voice, text);
     }
 
+    public async Task<GeneratedVoiceClip> GenerateDialogueClip(IReadOnlyList<TtsDialogueLine> lines,
+        IReadOnlyDictionary<int, string> voices)
+    {
+        var sourceClips = new List<GeneratedVoiceClip>();
+        var scheduled = new List<(string Path, long StartMs)>();
+        var consumed = new bool[lines.Count];
+
+        try
+        {
+            async Task<long> ScheduleLine(int lineIndex, long startMs)
+            {
+                consumed[lineIndex] = true;
+                var line = lines[lineIndex];
+                if (!voices.TryGetValue(line.Speaker, out var voiceId))
+                    throw new PKError($"Speaker {line.Speaker} does not have a configured voice.");
+
+                var lineClip = await GenerateClip(voiceId, line.SpokenText);
+                sourceClips.Add(lineClip);
+                scheduled.Add((lineClip.TempPath, startMs));
+                var endMs = startMs + await ProbeDurationMs(lineClip.TempPath);
+
+                var cueIndex = 0;
+                for (var fragmentIndex = 0; fragmentIndex < line.Fragments.Count; fragmentIndex++)
+                {
+                    if (line.Fragments[fragmentIndex] is not TtsDialogueOverlapCue cue)
+                        continue;
+
+                    var targetIndex = Enumerable.Range(lineIndex + 1, lines.Count - lineIndex - 1)
+                        .FirstOrDefault(index => !consumed[index] && lines[index].Speaker == cue.Speaker, -1);
+                    if (targetIndex < 0)
+                        throw new PKError($"Overlap cue ({cue.Speaker}) has no future speaker {cue.Speaker} line.");
+
+                    var prefixText = line.CuePrefixes[cueIndex++];
+                    var cueOffsetMs = 0L;
+                    if (prefixText.Length > 0)
+                    {
+                        using var prefixClip = await GenerateClip(voiceId, prefixText);
+                        cueOffsetMs = await ProbeDurationMs(prefixClip.TempPath);
+                    }
+
+                    endMs = Math.Max(endMs, await ScheduleLine(targetIndex, startMs + cueOffsetMs));
+                }
+
+                return endMs;
+            }
+
+            var timelineEndMs = 0L;
+            for (var index = 0; index < lines.Count; index++)
+                if (!consumed[index])
+                    timelineEndMs = await ScheduleLine(index, timelineEndMs);
+
+            return await MixDialogueClips(scheduled);
+        }
+        finally
+        {
+            foreach (var clip in sourceClips)
+                clip.Dispose();
+        }
+    }
+
+    private async Task<long> ProbeDurationMs(string path)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = "ffprobe",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        foreach (var arg in new[] { "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", path })
+            psi.ArgumentList.Add(arg);
+
+        using var process = Process.Start(psi) ?? throw new PKError("Could not start ffprobe.");
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
+        var stderrTask = process.StandardError.ReadToEndAsync();
+        await WaitForExit(process, "ffprobe");
+        var stdout = await stdoutTask;
+        var stderr = await stderrTask;
+
+        if (process.ExitCode != 0 || !double.TryParse(stdout.Trim(), global::System.Globalization.NumberStyles.Float,
+            global::System.Globalization.CultureInfo.InvariantCulture, out var seconds))
+        {
+            _logger.Warning("ffprobe failed for TTS clip with code {ExitCode}: {Stderr}", process.ExitCode, stderr);
+            throw new PKError("Could not determine generated voice clip duration.");
+        }
+
+        return Math.Max(1, (long)Math.Ceiling(seconds * 1000));
+    }
+
+    private async Task<GeneratedVoiceClip> MixDialogueClips(IReadOnlyList<(string Path, long StartMs)> clips)
+    {
+        if (clips.Count == 0)
+            throw new PKError("Dialogue does not contain any text to speak.");
+
+        var outputPath = Path.Combine(Path.GetTempPath(), $"copycat-ttsg-{Guid.NewGuid():N}.ogg");
+        var psi = new ProcessStartInfo
+        {
+            FileName = "ffmpeg",
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        psi.ArgumentList.Add("-nostdin");
+        psi.ArgumentList.Add("-y");
+        foreach (var clip in clips)
+        {
+            psi.ArgumentList.Add("-i");
+            psi.ArgumentList.Add(clip.Path);
+        }
+
+        var delayedInputs = clips.Select((clip, index) =>
+            $"[{index}:a]adelay={clip.StartMs}:all=1[a{index}]");
+        var mixInputs = string.Concat(clips.Select((_, index) => $"[a{index}]"));
+        var filter = string.Join(';', delayedInputs)
+            + $";{mixInputs}amix=inputs={clips.Count}:duration=longest:normalize=0,alimiter=limit=0.95[out]";
+        foreach (var arg in new[] { "-filter_complex", filter, "-map", "[out]", "-c:a", "libopus", "-b:a", "48k", outputPath })
+            psi.ArgumentList.Add(arg);
+
+        using var process = Process.Start(psi) ?? throw new PKError("Could not start ffmpeg.");
+        var stderrTask = process.StandardError.ReadToEndAsync();
+        await WaitForExit(process, "ffmpeg dialogue mix");
+        var stderr = await stderrTask;
+        if (process.ExitCode != 0 || !global::System.IO.File.Exists(outputPath))
+        {
+            _logger.Warning("ffmpeg dialogue mix exited with code {ExitCode}: {Stderr}", process.ExitCode, stderr);
+            try { global::System.IO.File.Delete(outputPath); } catch { }
+            throw new PKError("Could not combine the generated voice clips.");
+        }
+
+        var stream = new FileStream(outputPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var multipart = new MultipartFile("ttsg.ogg", stream, "Generated group voice clip", null, null, false);
+        return new GeneratedVoiceClip(multipart, outputPath);
+    }
+
     // ── Piper TTS (neural voices, called directly from C#) ───────────────────
 
     private async Task<GeneratedVoiceClip> GeneratePiperClip(string voiceId, string text)
@@ -318,7 +455,7 @@ public class TtsVoiceService
         process.StandardInput.Close();
 
         var stderrTask = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
+        await WaitForExit(process, "piper-tts");
         var stderr = await stderrTask;
 
         if (process.ExitCode != 0)
@@ -366,7 +503,11 @@ public class TtsVoiceService
                 return wavPath;
 
             _ = proc.StandardError.ReadToEnd();
-            proc.WaitForExit();
+            if (!proc.WaitForExit((int)ExternalProcessTimeout.TotalMilliseconds))
+            {
+                TryKill(proc);
+                throw new TimeoutException("ffmpeg compression timed out.");
+            }
 
             if (proc.ExitCode == 0 && global::System.IO.File.Exists(oggPath) && new FileInfo(oggPath).Length > 0)
             {
@@ -514,7 +655,7 @@ public class TtsVoiceService
 
             var stdoutTask = process.StandardOutput.ReadToEndAsync();
             var stderrTask = process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
+            await WaitForExit(process, $"TTS generator ({pythonCommand})");
             var stdout = await stdoutTask;
             var stderr = await stderrTask;
 
@@ -552,5 +693,32 @@ public class TtsVoiceService
         };
 
         return candidates.FirstOrDefault(global::System.IO.File.Exists);
+    }
+
+    private static async Task WaitForExit(Process process, string processName)
+    {
+        using var timeout = new CancellationTokenSource(ExternalProcessTimeout);
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token);
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        {
+            TryKill(process);
+            throw new TimeoutException($"{processName} timed out.");
+        }
+    }
+
+    private static void TryKill(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+        }
+        catch
+        {
+            // Best effort: the process may have exited between the check and the kill.
+        }
     }
 }

@@ -48,7 +48,54 @@ public class ApplicationCommandTts
         var replyTo = GetOptionalStringOption(ctx.Event.Data?.Options, "reply_to");
         var replyTarget = TryParseReplyTarget(replyTo, ctx.GuildId, ctx.ChannelId);
 
-        await ExecuteTtsCore(ctx, voice, text, attachment, replyTarget);
+        await ExecuteTtsCore(ctx, new[] { voice }, text, attachment, replyTarget,
+            async () => await _tts.GenerateClip(voice.Id, await ResolveMentionsForTts(ctx, text)));
+
+        await DeleteDeferredReply(ctx);
+    }
+
+    public async Task SendGroupAsInvoker(InteractionContext ctx)
+    {
+        if (ctx.Event.GuildId == 0)
+            throw new PKError("The /ttsg command only works in servers.");
+
+        await ctx.Defer();
+
+        var text = GetOptionalStringOption(ctx.Event.Data?.Options, "text");
+        if (string.IsNullOrWhiteSpace(text))
+            throw new PKError("Provide numbered dialogue to speak.");
+        if (text.Length > 2000)
+            throw new PKError("Message text cannot be longer than 2000 characters.");
+
+        var voices = new List<VoiceDefinition>
+        {
+            ParseVoice(GetOptionalStringOption(ctx.Event.Data?.Options, "voice1")),
+            ParseVoice(GetOptionalStringOption(ctx.Event.Data?.Options, "voice2"))
+        };
+        var voice3 = GetOptionalStringOption(ctx.Event.Data?.Options, "voice3");
+        if (!string.IsNullOrWhiteSpace(voice3))
+            voices.Add(ParseVoice(voice3));
+
+        TtsDialogueParser.Parse(text, voices.Count);
+
+        var attachment = GetOptionalAttachmentOption(ctx.Event.Data, "attachment");
+        var replyTo = GetOptionalStringOption(ctx.Event.Data?.Options, "reply_to");
+        var replyTarget = TryParseReplyTarget(replyTo, ctx.GuildId, ctx.ChannelId);
+        var voiceMap = voices.Select((voice, index) => (Speaker: index + 1, voice.Id))
+            .ToDictionary(item => item.Speaker, item => item.Id);
+
+        await ExecuteTtsCore(ctx, voices, text, attachment, replyTarget, async () =>
+        {
+            var resolvedText = await ResolveMentionsForTts(ctx, text);
+            var dialogue = TtsDialogueParser.Parse(resolvedText, voices.Count);
+            return await _tts.GenerateDialogueClip(dialogue, voiceMap);
+        });
+
+        await DeleteDeferredReply(ctx);
+    }
+
+    private static async Task DeleteDeferredReply(InteractionContext ctx)
+    {
 
         // Remove the deferred ephemeral "thinking" indicator now that the message was sent.
         try
@@ -75,14 +122,15 @@ public class ApplicationCommandTts
 
         var voice = ParseVoice(voiceId);
         var replyTarget = new ReplyTarget(ctx.GuildId, ctx.ChannelId, replyToMessageId);
-        await ExecuteTtsCore(ctx, voice, text, attachment, replyTarget);
+        await ExecuteTtsCore(ctx, new[] { voice }, text, attachment, replyTarget,
+            async () => await _tts.GenerateClip(voice.Id, await ResolveMentionsForTts(ctx, text)));
     }
 
     // Core send flow shared by the /tts slash command (SendAsInvoker) and the "Reply as me (TTS)"
     // context-menu command (SendTtsReply). The interaction must already be deferred; the caller
     // owns cleaning up the deferred ephemeral reply afterwards.
-    private async Task ExecuteTtsCore(InteractionContext ctx, VoiceDefinition voice, string text,
-        Message.Attachment? attachment, ReplyTarget? replyTarget)
+    private async Task ExecuteTtsCore(InteractionContext ctx, IReadOnlyCollection<VoiceDefinition> voices, string text,
+        Message.Attachment? attachment, ReplyTarget? replyTarget, Func<Task<GeneratedVoiceClip>> generateClip)
     {
         var guild = await _cache.GetGuild(ctx.GuildId);
         var messageChannel = await _cache.GetOrFetchChannel(ctx.Rest, ctx.GuildId, ctx.ChannelId);
@@ -116,7 +164,7 @@ public class ApplicationCommandTts
         if (reply?.PingUserId is { } pingUserId)
             content = $"{content}\n-# <@{pingUserId}>";
 
-        using var generatedClip = await _tts.GenerateClip(voice.Id, await ResolveMentionsForTts(ctx, text));
+        using var generatedClip = await generateClip();
 
         var sent = await _webhookExecutor.ExecuteWebhook(new ProxyRequest
         {
@@ -152,7 +200,8 @@ public class ApplicationCommandTts
         // send over a stats write.
         try
         {
-            await ctx.Repository.IncrementVoiceUsage(ctx.User.Id, voice.Id);
+            foreach (var voice in voices.DistinctBy(voice => voice.Id))
+                await ctx.Repository.IncrementVoiceUsage(ctx.User.Id, voice.Id);
         }
         catch
         {
@@ -169,6 +218,23 @@ public class ApplicationCommandTts
             return;
         }
 
+        await RespondVoiceAutocomplete(ctx, focused);
+    }
+
+    public async Task AutocompleteGroup(InteractionContext ctx)
+    {
+        var focused = GetFocusedOption(ctx.Event.Data?.Options);
+        if (focused == null || !focused.Name.StartsWith("voice", StringComparison.OrdinalIgnoreCase))
+        {
+            await ctx.RespondAutocomplete();
+            return;
+        }
+
+        await RespondVoiceAutocomplete(ctx, focused);
+    }
+
+    private async Task RespondVoiceAutocomplete(InteractionContext ctx, ApplicationCommandInteractionDataOption focused)
+    {
         var input = focused.Value?.ToString()?.Trim() ?? string.Empty;
 
         IEnumerable<VoiceDefinition> ordered;

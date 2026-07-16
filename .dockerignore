@@ -6,20 +6,13 @@
 !Myriad/
 !Serilog/
 !.git
-!dashboard
-!crates/
 
-!Cargo.toml
-!Cargo.lock
-!rust-toolchain.toml
 !PluralKit.sln
+!global.json
 !nuget.config
 !ci/dotnet-version.sh
 !ci/download-piper-voices.sh
 !ci/entrypoint.sh
-
-# used for target binary builds
-!.docker-bin/
 
 # Re-exclude host build artifact directories
 **/bin

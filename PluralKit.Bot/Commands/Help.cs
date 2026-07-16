@@ -167,8 +167,7 @@ public class Help
                     String.Join("\n", new[] {
                         "For a full list of commands, see [the command list](https://pluralkit.me/commands), or type `{prefix}commands`.",
                         "For a more in-depth explanation of message proxying, see [the documentation](https://pluralkit.me/guide#proxying).",
-                        "If you're an existing user of Tupperbox, type `{prefix}import` and attach a Tupperbox export file (from `tul!export`) to import your data from there.",
-                        "We also have a [web dashboard](https://dash.pluralkit.me) to edit your system info online."
+                        "If you're an existing user of Tupperbox, type `{prefix}import` and attach a Tupperbox export file (from `tul!export`) to import your data from there."
                     })
                 ),
                 new
@@ -258,6 +257,4 @@ public class Help
     });
 
     public Task Explain(Context ctx) => ctx.Reply(explanation);
-
-    public Task Dashboard(Context ctx) => ctx.Reply("The PluralKit dashboard is at <https://dash.pluralkit.me>");
 }

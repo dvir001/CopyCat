@@ -2,8 +2,6 @@ using System.Globalization;
 
 using Autofac;
 
-using AppFact.SerilogOpenSearchSink;
-
 using Microsoft.Extensions.Logging;
 
 using NodaTime;
@@ -11,6 +9,7 @@ using NodaTime;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Json;
+using Serilog.Sinks.Elasticsearch;
 using Serilog.Sinks.SystemConsole.Themes;
 
 using ILogger = Serilog.ILogger;
@@ -74,12 +73,10 @@ public class LoggingModule: Module
 
         if (config.ElasticUrl != null)
         {
-            logCfg.WriteTo.OpenSearch(
-                uri: config.ElasticUrl,
-                index: "dotnet-logs",
-                basicAuthUser: "unused",
-                basicAuthPassword: "unused"
-            );
+            logCfg.WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri(config.ElasticUrl))
+            {
+                IndexFormat = "dotnet-logs"
+            });
         }
 
         _fn.Invoke(logCfg);

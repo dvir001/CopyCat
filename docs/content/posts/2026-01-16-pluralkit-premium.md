@@ -24,7 +24,6 @@ At launch, PK Premium will offer the following:
 
 - the ability to set custom system/member/group IDs,
 - lossless, higher resolution image hosting on PluralKit's CDN,
-- the ability to upload avatars/banners directly from the PluralKit Dashboard,
 - and a badge on your PluralKit system card to show off your support.
 
 We will be adding more perks to PK Premium in future - including, but not
@@ -46,8 +45,7 @@ limited to:
 - PK Premium is launching before the end of February 2026, at US$5/month (+ tax)
 - No existing features, or new core features, will be paywalled - the premium
   subscription offers cosmetic perks and power-user features only
-- Features at launch include custom IDs; high-resolution image hosting; and
-  direct image upload from the web dashboard
+- Features at launch include custom IDs, high-resolution image hosting, and a supporter badge
 - More premium features are still to come!
 
 #### Can I pay yearly?

@@ -22,7 +22,6 @@
     <ItemGroup>
         <PackageReference Include="App.Metrics" Version="4.3.0" />
         <PackageReference Include="App.Metrics.Reporting.InfluxDB" Version="4.3.0" />
-        <PackageReference Include="AppFact.SerilogOpenSearchSink" Version="0.0.15" />
         <PackageReference Include="Autofac" Version="9.3.1" />
         <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="11.0.2" />
         <PackageReference Include="Dapper" Version="2.1.79" />
@@ -31,10 +30,10 @@
         <PackageReference Include="ipnetwork2" Version="4.3.0" />
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.9" />
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.9" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.9" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="10.0.9" />
         <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.9" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
@@ -59,7 +58,7 @@
         <EmbeddedResource Include="Database/**/*.sql" />
     </ItemGroup>
 
-    <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation">
+    <Target Name="SetSourceRevisionId" BeforeTargets="InitializeSourceControlInformation" Condition="'$(OS)' != 'Windows_NT'">
         <Exec Command="sh dotnet-version.sh" WorkingDirectory="$(MSBuildThisFileDirectory)../ci" IgnoreExitCode="False">
         </Exec>
     </Target>

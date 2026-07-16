@@ -51,6 +51,21 @@ public class Init
             var config = services.Resolve<BotConfig>();
             var coreConfig = services.Resolve<CoreConfig>();
 
+            if (Environment.GetEnvironmentVariable("COPYCAT_MIGRATE_ONLY") == "true")
+            {
+                logger.Information("Running database migrations");
+                await MigrationRunner.Run(coreConfig);
+                return;
+            }
+
+            if (Environment.GetEnvironmentVariable("COPYCAT_REGISTER_COMMANDS_ONLY") == "true")
+            {
+                logger.Information("Registering Discord application commands");
+                await ApplicationCommandTree.RegisterGlobalCommands(
+                    services.Resolve<DiscordApiClient>(), config.ClientId);
+                return;
+            }
+
             // initialize Redis
             var redis = services.Resolve<RedisService>();
             await redis.InitAsync(coreConfig);

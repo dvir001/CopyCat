@@ -183,25 +183,13 @@ public class EmbedService
             {
                 Type = ComponentType.Container,
                 AccentColor = system.Color?.ToDiscordColor(),
-                Components = [ ..header, ..switchComponent, linkedAccounts, ..descComponents ],
-            },
-            new MessageComponent()
-            {
-                Type = ComponentType.Section,
-                Components = [
-                    new MessageComponent()
+                Components = [ ..header, ..switchComponent, linkedAccounts, ..descComponents,
+                    new MessageComponent
                     {
                         Type = ComponentType.Text,
                         Content = $"-# System ID: `{system.DisplayHid(cctx.Config)}`\n-# Created: {system.Created.FormatZoned(cctx.Zone)}",
-                    },
+                    }
                 ],
-                Accessory = new MessageComponent()
-                {
-                    Type = ComponentType.Button,
-                    Style = ButtonStyle.Link,
-                    Label = "View on dashboard",
-                    Url = $"{_coreConfig.DashboardBaseUrl}/profile/s/{system.Hid}",
-                },
             },
         ];
     }
@@ -227,8 +215,7 @@ public class EmbedService
             .Title(system.NameFor(ctx))
             .Footer(new Embed.EmbedFooter(
                 $"System ID: {system.DisplayHid(cctx.Config)} | Created on {system.Created.FormatZoned(cctx.Zone)}"))
-            .Color(system.Color?.ToDiscordColor())
-            .Url($"{_coreConfig.DashboardBaseUrl}/profile/s/{system.Hid}");
+            .Color(system.Color?.ToDiscordColor());
 
         var avatar = system.AvatarFor(ctx);
         if (avatar != null)
@@ -460,25 +447,13 @@ public class EmbedService
             {
                 Type = ComponentType.Container,
                 AccentColor = member.Color?.ToDiscordColor(),
-                Components = [ ..header, ..extraData, ..descComponents ],
-            },
-            new MessageComponent()
-            {
-                Type = ComponentType.Section,
-                Components = [
-                    new MessageComponent()
+                Components = [ ..header, ..extraData, ..descComponents,
+                    new MessageComponent
                     {
                         Type = ComponentType.Text,
                         Content = $"-# System ID: `{system.DisplayHid(ccfg)}` \u2219 Member ID: `{member.DisplayHid(ccfg)}`{(member.MetadataPrivacy.CanAccess(ctx) ? $"\n-# Created: {member.Created.FormatZoned(zone)}" : "")}",
-                    },
+                    }
                 ],
-                Accessory = new MessageComponent()
-                {
-                    Type = ComponentType.Button,
-                    Style = ButtonStyle.Link,
-                    Label = "View on dashboard",
-                    Url = $"{_coreConfig.DashboardBaseUrl}/profile/m/{member.Hid}",
-                },
             },
         ];
     }
@@ -507,7 +482,7 @@ public class EmbedService
             .ToListAsync();
 
         var eb = new EmbedBuilder()
-            .Author(new Embed.EmbedAuthor(name, IconUrl: webhook_avatar.TryGetCleanCdnUrl(), Url: $"{_coreConfig.DashboardBaseUrl}/profile/m/{member.Hid}"))
+            .Author(new Embed.EmbedAuthor(name, IconUrl: webhook_avatar.TryGetCleanCdnUrl()))
             // .WithColor(member.ColorPrivacy.CanAccess(ctx) ? color : null)
             .Color(member.Color?.ToDiscordColor())
             .Footer(new Embed.EmbedFooter(
@@ -650,25 +625,13 @@ public class EmbedService
             {
                 Type = ComponentType.Container,
                 AccentColor = target.Color?.ToDiscordColor(),
-                Components = [ ..header, ..descComponents ],
-            },
-            new MessageComponent()
-            {
-                Type = ComponentType.Section,
-                Components = [
-                    new MessageComponent()
+                Components = [ ..header, ..descComponents,
+                    new MessageComponent
                     {
                         Type = ComponentType.Text,
                         Content = $"-# System ID: `{system.DisplayHid(ctx.Config)}` \u2219 Group ID: `{target.DisplayHid(ctx.Config)}`{(target.MetadataPrivacy.CanAccess(pctx) ? $"\n-# Created: {target.Created.FormatZoned(ctx.Zone)}" : "")}",
-                    },
+                    }
                 ],
-                Accessory = new MessageComponent()
-                {
-                    Type = ComponentType.Button,
-                    Style = ButtonStyle.Link,
-                    Label = "View on dashboard",
-                    Url = $"{_coreConfig.DashboardBaseUrl}/profile/g/{target.Hid}",
-                },
             },
         ];
     }
@@ -698,7 +661,7 @@ public class EmbedService
             nameField = $"{nameField}";
 
         var eb = new EmbedBuilder()
-            .Author(new Embed.EmbedAuthor(nameField, IconUrl: target.IconFor(pctx), Url: $"{_coreConfig.DashboardBaseUrl}/profile/g/{target.Hid}"))
+            .Author(new Embed.EmbedAuthor(nameField, IconUrl: target.IconFor(pctx)))
             .Color(target.Color?.ToDiscordColor());
 
         eb.Footer(new Embed.EmbedFooter($"System ID: {system.DisplayHid(ctx.Config)} | Group ID: {target.DisplayHid(ctx.Config)}{(target.MetadataPrivacy.CanAccess(pctx) ? $" | Created on {target.Created.FormatZoned(ctx.Zone)}" : "")}"));

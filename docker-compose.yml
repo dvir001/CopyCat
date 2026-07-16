@@ -1,34 +1,22 @@
 services:
 
   migrate:
-    image: ghcr.io/${GHCR_OWNER}/migrate:latest
+    image: ghcr.io/${GHCR_OWNER}/copycat:latest
     environment:
-      - RUST_LOG=info
-      - pluralkit__db__data_db_uri=postgresql://postgres:postgres@db:5432/postgres
-      - pluralkit__db__data_redis_addr=1
-    command: ["/migrate"]
+      - "COPYCAT_MIGRATE_ONLY=true"
+      - "PluralKit__Database=Host=db;Username=postgres;Password=postgres;Database=postgres"
+    command: ["bin/PluralKit.Bot.dll"]
     depends_on:
       db:
         condition: service_healthy
 
   register-commands:
-    build:
-      context: .
-      dockerfile: ci/Dockerfile.rust
-      args:
-        BINARIES: app-commands
-        CARGO_JOBS: 2
-    command: ["/bin/sh", "-lc", "exec /app-commands || exec /app_commands"]
+    image: ghcr.io/${GHCR_OWNER}/copycat:latest
+    command: ["bin/PluralKit.Bot.dll"]
     environment:
-      - RUST_LOG=info
-      - pluralkit__discord__client_id=${CLIENT_ID}
-      - pluralkit__discord__bot_token=${BOT_TOKEN}
-      - pluralkit__discord__client_secret=1
-      - pluralkit__discord__max_concurrency=1
-      - pluralkit__db__data_db_uri=postgresql://postgres:postgres@db:5432/postgres
-      - pluralkit__db__data_redis_addr=redis://redis:6379
-    depends_on:
-      - redis
+      - "COPYCAT_REGISTER_COMMANDS_ONLY=true"
+      - "PluralKit__Bot__Token=${BOT_TOKEN}"
+      - "PluralKit__Bot__ClientId=${CLIENT_ID}"
     restart: "no"
 
   bot:
@@ -44,34 +32,12 @@ services:
       - "PluralKit__Bot__Token=${BOT_TOKEN}"
       - "PluralKit__Bot__ClientId=${CLIENT_ID}"
       - "PluralKit__Bot__AdminRole=${ADMIN_ROLE}"
-      - "PluralKit__Bot__HttpCacheUrl=gateway:5000"
-      - "PluralKit__Bot__HttpListenerAddr=0.0.0.0"
-      - "PluralKit__Bot__EventAwaiterTarget=http://bot:5002/events"
-      - "PluralKit__Bot__DisableGateway=true"
     restart: unless-stopped
     depends_on:
       migrate:
         condition: service_completed_successfully
-
-  gateway:
-    image: ghcr.io/${GHCR_OWNER}/gateway:latest
-    command: ["/gateway"]
-    environment:
-      - RUST_LOG=info
-      - pluralkit__discord__client_id=${CLIENT_ID}
-      - pluralkit__discord__bot_token=${BOT_TOKEN}
-      - pluralkit__discord__max_concurrency=1
-      - pluralkit__discord__gateway_target=http://bot:5002/events
-      - pluralkit__db__data_db_uri=postgresql://postgres:postgres@db:5432/postgres
-      - pluralkit__db__data_redis_addr=redis://redis:6379
-      - pluralkit__api__temp_token2=1
-      - pluralkit__api__remote_url=1
-      - pluralkit__api__ratelimit_redis_addr=1
-      - pluralkit__discord__client_secret=1
-      - pluralkit__runtime_config_key=gateway
-    depends_on:
-      - redis
-    restart: unless-stopped
+      redis:
+        condition: service_started
 
   db:
     image: postgres:17-alpine

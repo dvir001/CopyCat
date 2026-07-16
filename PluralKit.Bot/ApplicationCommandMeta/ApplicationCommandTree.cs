@@ -1,10 +1,27 @@
 using ApplicationCommandType = Myriad.Types.ApplicationCommand.ApplicationCommandType;
 using InteractionType = Myriad.Types.Interaction.InteractionType;
+using Myriad.Rest;
+using Myriad.Rest.Types;
 
 namespace PluralKit.Bot;
 
 public partial class ApplicationCommandTree
 {
+    public static async Task RegisterGlobalCommands(DiscordApiClient rest, ulong applicationId)
+    {
+        var commands = new[] { Say, Tts, ProxiedMessageDelete, SayContextMenu, TtsReply }
+            .Select(command => new ApplicationCommandRequest
+            {
+                Type = command.Type,
+                Name = command.Name,
+                Description = command.Description ?? "",
+                Options = command.Options?.ToList()
+            })
+            .ToList();
+
+        await rest.ReplaceGlobalApplicationCommands(applicationId, commands);
+    }
+
     public Task TryHandleCommand(InteractionContext ctx)
     {
         if (ctx.Event.Data!.Name == Say.Name)

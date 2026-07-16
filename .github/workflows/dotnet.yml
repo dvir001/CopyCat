@@ -4,16 +4,16 @@ on:
   push:
     paths:
     - .github/workflows/dotnet.yml
+    - global.json
     - 'Myriad/**'
-    - 'PluralKit.API/**'
     - 'PluralKit.Bot/**'
     - 'PluralKit.Core/**'
     - 'PluralKit.Tests/**'
   pull_request:
     paths:
     - .github/workflows/dotnet.yml
+    - global.json
     - 'Myriad/**'
-    - 'PluralKit.API/**'
     - 'PluralKit.Bot/**'
     - 'PluralKit.Core/**'
     - 'PluralKit.Tests/**'

@@ -10,12 +10,12 @@ on:
     paths:
     - '.dockerignore'
     - '.github/workflows/dotnet-docker.yml'
+    - 'global.json'
     - 'ci/Dockerfile.dotnet'
     - 'ci/dotnet-version.sh'
     - 'ci/entrypoint.sh'
     - 'ci/download-piper-voices.sh'
     - 'Myriad/**'
-    - 'PluralKit.API/**'
     - 'PluralKit.Bot/**'
     - 'PluralKit.Core/**'
 

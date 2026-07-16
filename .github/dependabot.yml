@@ -9,25 +9,8 @@ updates:
       - dependencies
       - github-actions
 
-  - package-ecosystem: cargo
-    directory: "/"
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 10
-    labels:
-      - dependencies
-      - rust
-
   - package-ecosystem: nuget
     directory: "/Myriad"
-    schedule:
-      interval: weekly
-    labels:
-      - dependencies
-      - dotnet
-
-  - package-ecosystem: nuget
-    directory: "/PluralKit.API"
     schedule:
       interval: weekly
     labels:
@@ -59,14 +42,6 @@ updates:
       - dotnet
 
   - package-ecosystem: npm
-    directory: "/dashboard"
-    schedule:
-      interval: weekly
-    labels:
-      - dependencies
-      - npm
-
-  - package-ecosystem: npm
     directory: "/docs"
     schedule:
       interval: weekly
@@ -74,24 +49,8 @@ updates:
       - dependencies
       - npm
 
-  - package-ecosystem: gomod
-    directory: "/dashboard"
-    schedule:
-      interval: weekly
-    labels:
-      - dependencies
-      - go
-
   - package-ecosystem: docker
     directory: "/ci"
-    schedule:
-      interval: weekly
-    labels:
-      - dependencies
-      - docker
-
-  - package-ecosystem: docker
-    directory: "/dashboard"
     schedule:
       interval: weekly
     labels:

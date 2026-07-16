@@ -38,7 +38,7 @@ To enable `pk;admin` commands (raising member limits, etc.), also set:
 ADMIN_ROLE=your_admin_role_id_here
 ```
 
-2. Build and start all services:
+2. Build and start the bot and its data services:
 
 ```sh
 docker compose build
@@ -88,10 +88,9 @@ The directory is bind-mounted into the container at `/app/cabal`. Without these 
 
 | Service | Language | Role |
 |---------|----------|------|
-| `bot` | C# (.NET) | Discord bot: handles slash commands, proxying, TTS |
-| `gateway` | Rust | Connects to Discord gateway and forwards events to the bot |
-| `migrate` | Rust | Runs database migrations on startup |
-| `register-commands` | Rust | Registers slash commands with Discord |
+| `bot` | C# (.NET) | Discord gateway, slash commands, proxying, and TTS |
+| `migrate` | C# (.NET) | Runs embedded SQL database migrations on startup |
+| `register-commands` | C# (.NET) | Registers slash commands with Discord |
 | `db` | PostgreSQL 17 | Persistent data store |
 | `redis` | Redis | Internal state and caching |
 

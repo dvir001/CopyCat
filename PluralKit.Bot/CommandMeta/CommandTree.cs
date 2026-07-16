@@ -105,8 +105,6 @@ public partial class CommandTree
                 return ctx.Execute<Random>(GroupRandom, r => r.Group(ctx, ctx.System));
             else
                 return ctx.Execute<Random>(MemberRandom, m => m.Member(ctx, ctx.System));
-        if (ctx.Match("dashboard", "dash"))
-            return ctx.Execute<Help>(Dashboard, m => m.Dashboard(ctx));
 
         // don't send an "invalid command" response if the guild has those turned off
         if (ctx.GuildConfig != null && ctx.GuildConfig!.InvalidCommandResponseEnabled != true)

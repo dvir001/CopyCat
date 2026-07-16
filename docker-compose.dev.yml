@@ -9,30 +9,16 @@ services:
     image: ""
     build:
       context: .
-      dockerfile: ci/Dockerfile.rust
-      args:
-        BINARIES: migrate
-        CARGO_JOBS: 2
+      dockerfile: ci/Dockerfile.dotnet
 
   register-commands:
+    image: ""
     build:
       context: .
-      dockerfile: ci/Dockerfile.rust
-      args:
-        BINARIES: app-commands
-        CARGO_JOBS: 2
+      dockerfile: ci/Dockerfile.dotnet
 
   bot:
     image: ""
     build:
       context: .
       dockerfile: ci/Dockerfile.dotnet
-
-  gateway:
-    image: ""
-    build:
-      context: .
-      dockerfile: ci/Dockerfile.rust
-      args:
-        BINARIES: gateway
-        CARGO_JOBS: 2

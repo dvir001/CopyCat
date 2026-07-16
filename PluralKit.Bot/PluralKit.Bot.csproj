@@ -31,5 +31,6 @@
         <None Update="Tools\Tts\**\*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <EmbeddedResource Include="Migrations\**\*.sql" />
     </ItemGroup>
 </Project>

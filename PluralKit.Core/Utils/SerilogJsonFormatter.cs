@@ -79,7 +79,8 @@ public sealed class CustomJsonFormatter: ITextFormatter
                 return "ERROR";
             case LogEventLevel.Fatal:
                 return "FATAL";
-        };
+        }
+        ;
 
         return "UNKNOWN";
     }

@@ -95,7 +95,7 @@ public class TtsVoiceService
 
         // Special python-bridge voices (morshu / cabal): only when their vendor library is present.
         var scriptPath = TryResolveScriptPath();
-        var scriptDir  = scriptPath != null ? Path.GetDirectoryName(scriptPath) : null;
+        var scriptDir = scriptPath != null ? Path.GetDirectoryName(scriptPath) : null;
         if (scriptDir != null)
             foreach (var (id, vendor) in SpecialVoices)
                 if (Directory.Exists(Path.Combine(scriptDir, "vendors", vendor)) && available.Add(id))

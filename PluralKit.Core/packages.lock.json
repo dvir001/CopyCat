@@ -158,9 +158,9 @@
       },
       "NodaTime": {
         "type": "Direct",
-        "requested": "[3.2.0, )",
-        "resolved": "3.2.0",
-        "contentHash": "yoRA3jEJn8NM0/rQm78zuDNPA3DonNSZdsorMUj+dltc1D+/Lc5h9YXGqbEEZozMGr37lAoYkcSM/KjTVqD0ow=="
+        "requested": "[3.2.2, )",
+        "resolved": "3.2.2",
+        "contentHash": "dmju5W0UYC3QP/UJM0juKAZkH0HSDMp0gH91A0+mT9M0kgyM2Jm67hUZPl/WRQLq8Lijjqmdk8kyAViWFWM7dA=="
       },
       "NodaTime.Serialization.JsonNet": {
         "type": "Direct",
@@ -174,21 +174,21 @@
       },
       "Npgsql": {
         "type": "Direct",
-        "requested": "[9.0.2, )",
-        "resolved": "9.0.2",
-        "contentHash": "hCbO8box7i/XXiTFqCJ3GoowyLqx3JXxyrbOJ6om7dr+eAknvBNhhUHeJVGAQo44sySZTfdVffp4BrtPeLZOAA==",
+        "requested": "[10.0.3, )",
+        "resolved": "10.0.3",
+        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w==",
         "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "8.0.2"
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
         }
       },
       "Npgsql.NodaTime": {
         "type": "Direct",
-        "requested": "[9.0.2, )",
-        "resolved": "9.0.2",
-        "contentHash": "jURb6VGmmR3pPae2N3HrUixSZ/U5ovqZgg/qo3m5Rq/q0m2fpxbZcsHZo21s5MLa/AfJAx4hcFMY98D4RtLdcg==",
+        "requested": "[10.0.3, )",
+        "resolved": "10.0.3",
+        "contentHash": "6ba1CM/zAoI7bTuBV7cFhTR3qqUsY5FqqqNoOh7dHoFHcyEEpIsMui3mC3Swyc+oyAJG0Zf8DCiXPnAf+sW09A==",
         "dependencies": {
-          "NodaTime": "3.2.0",
-          "Npgsql": "9.0.2"
+          "NodaTime": "3.2.2",
+          "Npgsql": "10.0.3"
         }
       },
       "Serilog": {

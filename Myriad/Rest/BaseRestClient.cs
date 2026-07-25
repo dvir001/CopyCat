@@ -153,8 +153,28 @@ public class BaseRestClient: IAsyncDisposable
         if (files != null)
             for (var i = 0; i < files.Length; i++)
             {
-                var (filename, stream, _, _, _, _) = files[i];
-                mfd.Add(new StreamContent(stream), $"files[{i}]", filename);
+                var file = files[i];
+                var content = new StreamContent(file.Data);
+                var contentType = Path.GetExtension(file.Filename).ToLowerInvariant() switch
+                {
+                    ".gif" => "image/gif",
+                    ".png" => "image/png",
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".webp" => "image/webp",
+                    ".avif" => "image/avif",
+                    ".mp4" => "video/mp4",
+                    ".webm" => "video/webm",
+                    ".mov" => "video/quicktime",
+                    ".mp3" => "audio/mpeg",
+                    ".ogg" or ".oga" => "audio/ogg",
+                    ".wav" => "audio/wav",
+                    ".flac" => "audio/flac",
+                    _ => file.ContentType
+                };
+                if (!string.IsNullOrWhiteSpace(contentType))
+                    content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+
+                mfd.Add(content, $"files[{i}]", file.Filename);
             }
 
         request.Content = mfd;

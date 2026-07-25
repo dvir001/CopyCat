@@ -60,6 +60,15 @@ public partial class ModelRepository
     public Task<CommandMessage?> GetCommandMessage(ulong id)
         => _db.QueryFirst<CommandMessage?>(new Query("command_messages").Where("mid", id), messages: true);
 
+    public async Task<ulong?> GetMessageSender(ulong id)
+    {
+        var message = await GetMessage(id);
+        if (message != null)
+            return message.Sender;
+
+        return (await GetCommandMessage(id))?.Sender;
+    }
+
     public async Task DeleteMessage(ulong id)
     {
         var query = new Query("messages").AsDelete().Where("mid", id);

@@ -132,6 +132,9 @@ public class WebhookExecutorService
                 Parse = Array.Empty<AllowedMentions.ParseType>()
             };
 
+        var attachmentChunks = ChunkAttachmentsOrThrow(req.Attachments, req.FileSizeLimit);
+        var attachmentEmbeds = CreateAttachmentEmbeds(attachmentChunks.FirstOrDefault(), 10 - req.Embeds.Length);
+
         var webhookReq = new ExecuteWebhookRequest
         {
             Username = req.Name.FixProxyName().Truncate(80),
@@ -139,7 +142,7 @@ public class WebhookExecutorService
             AllowedMentions = allowedMentions,
             MessageReference = req.MessageReference,
             AvatarUrl = !string.IsNullOrWhiteSpace(req.AvatarUrl) ? req.AvatarUrl : null,
-            Embeds = req.Embeds,
+            Embeds = req.Embeds.Concat(attachmentEmbeds).ToArray(),
             Stickers = req.Stickers,
             Flags = req.Flags,
             Tts = req.Tts,
@@ -147,7 +150,6 @@ public class WebhookExecutorService
 
         var generatedFiles = req.GeneratedFiles ?? Array.Empty<MultipartFile>();
         MultipartFile[] files = generatedFiles;
-        var attachmentChunks = ChunkAttachmentsOrThrow(req.Attachments, req.FileSizeLimit);
         if (attachmentChunks.Count > 0)
         {
             _logger.Information(
@@ -268,6 +270,7 @@ public class WebhookExecutorService
             {
                 Username = name,
                 AvatarUrl = avatarUrl,
+                Embeds = CreateAttachmentEmbeds(attachmentChunks[i], 10),
                 Attachments = files.Select(f => new AttachmentRequest
                 {
                     Id = (ulong)Array.IndexOf(files, f),
@@ -287,12 +290,30 @@ public class WebhookExecutorService
         {
             var attachmentResponse =
                 await _client.GetAsync(attachment.Url, HttpCompletionOption.ResponseHeadersRead);
+            attachmentResponse.EnsureSuccessStatusCode();
             return new MultipartFile(attachment.Filename, await attachmentResponse.Content.ReadAsStreamAsync(),
                 attachment.Description, attachment.Waveform, attachment.DurationSecs,
-                attachment.Flags.HasFlag(Message.AttachmentFlags.IsSpoiler));
+                attachment.Flags.HasFlag(Message.AttachmentFlags.IsSpoiler),
+                attachmentResponse.Content.Headers.ContentType?.MediaType);
         }
 
         return await Task.WhenAll(attachments.Select(GetStream));
+    }
+
+    private static Embed[] CreateAttachmentEmbeds(IEnumerable<Message.Attachment>? attachments, int limit)
+    {
+        if (attachments == null || limit <= 0)
+            return Array.Empty<Embed>();
+
+        return attachments
+            .Where(attachment => Path.GetExtension(attachment.Filename).ToLowerInvariant() is
+                ".jpg" or ".jpeg" or ".png" or ".webp" or ".gif")
+            .Take(limit)
+            .Select(attachment => new Embed
+            {
+                Image = new Embed.EmbedImage($"attachment://{attachment.Filename}")
+            })
+            .ToArray();
     }
 
     private IReadOnlyList<IReadOnlyCollection<Message.Attachment>> ChunkAttachmentsOrThrow(

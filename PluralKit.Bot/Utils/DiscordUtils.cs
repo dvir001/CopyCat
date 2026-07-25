@@ -36,6 +36,9 @@ public static class DiscordUtils
     public static string NameAndMention(this User user) =>
         $"{user.Username.EscapeMarkdown()}{(user.Discriminator == "0" ? "" : $"#{user.Discriminator}")} ({user.Mention()})";
 
+    public static bool MentionsUser(this Message message, ulong userId) =>
+        message.Mentions?.Any(user => user.Id == userId) == true;
+
     public static Instant SnowflakeToInstant(ulong snowflake) =>
         Instant.FromUtc(2015, 1, 1, 0, 0, 0) + Duration.FromMilliseconds(snowflake >> 22);
 

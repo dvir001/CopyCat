@@ -225,7 +225,7 @@ public class ProxyService
                     embeds.Add(embed);
 
                 if (repliedTo.WebhookId != null && trigger.MessageReference.MessageId is { } repliedToId)
-                    replyPingUserId = (await _repo.GetMessage(repliedToId))?.Sender;
+                    replyPingUserId = await _repo.GetMessageSender(repliedToId);
             }
 
             // TODO: have a clean error for when message can't be fetched instead of just being silent
@@ -234,7 +234,7 @@ public class ProxyService
         // Send the webhook
         var content = match.ProxyContent;
         if (!allowEmbeds) content = content.BreakLinkEmbeds();
-        if (replyPingUserId is { } pingUserId)
+        if (replyPingUserId is { } pingUserId && !trigger.MentionsUser(pingUserId))
             content = string.IsNullOrWhiteSpace(content) ? $"-# <@{pingUserId}>" : $"{content}\n-# <@{pingUserId}>";
 
         var messageChannel = await _cache.GetChannel(trigger.GuildId!.Value, trigger.ChannelId);

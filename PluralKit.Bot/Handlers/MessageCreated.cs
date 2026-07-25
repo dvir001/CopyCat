@@ -29,12 +29,14 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
     private readonly ILifetimeScope _services;
     private readonly CommandTree _tree;
     private readonly PrivateChannelService _dmCache;
+    private readonly WebhookExecutorService _webhookExecutor;
 
     public MessageCreated(LastMessageCacheService lastMessageCache, LoggerCleanService loggerClean,
                           IMetrics metrics, ProxyService proxy,
                           CommandTree tree, ILifetimeScope services, IDatabase db, BotConfig config,
                           ModelRepository repo, IDiscordCache cache,
-                          Bot bot, Cluster cluster, DiscordApiClient rest, PrivateChannelService dmCache)
+                          Bot bot, Cluster cluster, DiscordApiClient rest, PrivateChannelService dmCache,
+                          WebhookExecutorService webhookExecutor)
     {
         _lastMessageCache = lastMessageCache;
         _loggerClean = loggerClean;
@@ -50,6 +52,7 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
         _cluster = cluster;
         _rest = rest;
         _dmCache = dmCache;
+        _webhookExecutor = webhookExecutor;
     }
 
     public (ulong?, ulong?) ErrorChannelFor(MessageCreateEvent evt, ulong userId) => (evt.GuildId, evt.ChannelId);
@@ -94,13 +97,52 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
             if (await TryHandleCommand(shardId, evt, guild, channel))
                 return;
 
-            if (evt.GuildId != null)
-                await TryHandleProxy(evt, guild, channel, rootChannel.Id, botPermissions);
+            if (evt.GuildId != null && !await TryHandleProxy(evt, guild, channel, rootChannel.Id, botPermissions))
+                await TryHandleWebhookReplyPing(evt, guild, channel, rootChannel, botPermissions);
         }
         catch (Exception exc)
         {
             await _bot.HandleError(this, evt, _services, exc, true);
         }
+    }
+
+    private async Task TryHandleWebhookReplyPing(MessageCreateEvent evt, Guild guild, Channel channel,
+                                                 Channel rootChannel, PermissionSet botPermissions)
+    {
+        if (evt.Type != Message.MessageType.Reply ||
+            evt.MessageReference?.ChannelId != evt.ChannelId ||
+            evt.MessageReference.MessageId is not { } repliedToId ||
+            !botPermissions.HasFlag(PermissionSet.ManageWebhooks))
+            return;
+
+        var replyPingUserId = await _repo.GetMessageSender(repliedToId);
+        if (replyPingUserId == null || replyPingUserId == evt.Author.Id || evt.MentionsUser(replyPingUserId.Value))
+            return;
+
+        var avatarUrl = !string.IsNullOrWhiteSpace(evt.Member?.Avatar)
+            ? $"https://cdn.discordapp.com/guilds/{guild.Id}/users/{evt.Author.Id}/avatars/{evt.Member.Avatar}.png?size=4096"
+            : !string.IsNullOrWhiteSpace(evt.Author.Avatar)
+                ? $"https://cdn.discordapp.com/avatars/{evt.Author.Id}/{evt.Author.Avatar}.png?size=4096"
+                : null;
+
+        await _webhookExecutor.ExecuteWebhook(new ProxyRequest
+        {
+            GuildId = guild.Id,
+            ChannelId = rootChannel.Id,
+            ThreadId = channel.IsThread() ? channel.Id : null,
+            MessageId = evt.Id,
+            Name = evt.Member?.Nick ?? evt.Author.GlobalName ?? evt.Author.Username,
+            AvatarUrl = avatarUrl,
+            Content = $"-# <@{replyPingUserId}>",
+            Attachments = Array.Empty<Message.Attachment>(),
+            FileSizeLimit = guild.FileSizeLimit(),
+            Embeds = Array.Empty<Embed>(),
+            Stickers = Array.Empty<Sticker>(),
+            AllowEveryone = false,
+            Flags = 0,
+            Tts = false,
+            Poll = null,
+        });
     }
 
     private async Task TryHandleLogClean(Channel channel, MessageCreateEvent evt)

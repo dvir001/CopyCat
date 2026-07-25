@@ -46,5 +46,7 @@ public static class RedisExt
     }
 
     public static Task UlongSetAsync(this StackExchange.Redis.IDatabase database, string key, ulong value, TimeSpan? expiry = null)
-        => database.StringSetAsync(key, value.ToString(), expiry);
+        => expiry.HasValue
+            ? database.StringSetAsync(key, value.ToString(), expiry.Value)
+            : database.StringSetAsync(key, value.ToString());
 }

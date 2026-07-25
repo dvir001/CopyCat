@@ -213,6 +213,7 @@ public class ProxyService
     {
         // Create reply embed
         var embeds = new List<Embed>();
+        ulong? replyPingUserId = null;
         if (trigger.Type == Message.MessageType.Reply && trigger.MessageReference?.ChannelId == trigger.ChannelId)
         {
             var repliedTo = trigger.ReferencedMessage.Value;
@@ -222,6 +223,9 @@ public class ProxyService
                 var embed = CreateReplyEmbed(match, trigger, repliedTo, nickname, avatar);
                 if (embed != null)
                     embeds.Add(embed);
+
+                if (repliedTo.WebhookId != null && trigger.MessageReference.MessageId is { } repliedToId)
+                    replyPingUserId = (await _repo.GetMessage(repliedToId))?.Sender;
             }
 
             // TODO: have a clean error for when message can't be fetched instead of just being silent
@@ -230,6 +234,8 @@ public class ProxyService
         // Send the webhook
         var content = match.ProxyContent;
         if (!allowEmbeds) content = content.BreakLinkEmbeds();
+        if (replyPingUserId is { } pingUserId)
+            content = string.IsNullOrWhiteSpace(content) ? $"-# <@{pingUserId}>" : $"{content}\n-# <@{pingUserId}>";
 
         var messageChannel = await _cache.GetChannel(trigger.GuildId!.Value, trigger.ChannelId);
         var rootChannel = await _cache.GetRootChannel(trigger.GuildId!.Value, trigger.ChannelId);

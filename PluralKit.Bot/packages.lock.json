@@ -10,9 +10,9 @@
       },
       "Sentry": {
         "type": "Direct",
-        "requested": "[6.7.0, )",
-        "resolved": "6.7.0",
-        "contentHash": "fE8rXrzo1xZrKYtvSxDcww7ZLJbB4t+pZK748zrS5ctFo4L0sNNEkRDkJ6smSGwe0kpDRBQn4bQHPrvUOmzUaA=="
+        "requested": "[6.8.0, )",
+        "resolved": "6.8.0",
+        "contentHash": "amUjwslDtdx1p8r6z4APCxM8vHCKG4CBamPpSTwxmTMoBQ2CLwx2m3CaIttJXRT/hw9S5rNfXgjol2OqADytLQ=="
       },
       "Watson.Lite": {
         "type": "Direct",

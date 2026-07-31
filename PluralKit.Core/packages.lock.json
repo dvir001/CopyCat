@@ -285,12 +285,12 @@
       },
       "SqlKata.Execution": {
         "type": "Direct",
-        "requested": "[2.4.0, )",
-        "resolved": "2.4.0",
-        "contentHash": "Sen4PQZpWitW7p8d9lbNggCVkwoIBSDqo1ZVqY5UjjRzmNJLHmFvATkqYd+ZemaMZnjjMba+a5nMIyS0uWSFeA==",
+        "requested": "[4.0.1, )",
+        "resolved": "4.0.1",
+        "contentHash": "pFQg2Jn6sKtrDJyQBAYFvJQr7o5uB1rlUtOqxmLYkfPeAx6Nx8MFU1WyqE6LzYkVG6fKH2sNgG9VXl6EOKavPA==",
         "dependencies": {
           "Humanizer.Core": "2.8.26",
-          "SqlKata": "2.4.0",
+          "SqlKata": "4.0.1",
           "dapper": "2.0.123"
         }
       },

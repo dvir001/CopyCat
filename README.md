@@ -84,6 +84,8 @@ The directory is bind-mounted into the container at `/app/cabal`. Without these 
 - **Piper voices** — model files in `/data/piper` on the host (mounted into the container at `/app/piper`).
 - **CABAL audio** — `.aud` game audio files in `/data/cabal` on the host (mounted into the container at `/app/cabal`). Must be supplied manually (see above).
 
+PostgreSQL major versions do not share data directories. Before upgrading an existing PostgreSQL 17 deployment, back up and restore the database into PostgreSQL 18 or migrate it with `pg_upgrade`.
+
 ## Architecture
 
 | Service | Language | Role |
@@ -91,7 +93,7 @@ The directory is bind-mounted into the container at `/app/cabal`. Without these 
 | `bot` | C# (.NET) | Discord gateway, slash commands, proxying, and TTS |
 | `migrate` | C# (.NET) | Runs embedded SQL database migrations on startup |
 | `register-commands` | C# (.NET) | Registers slash commands with Discord |
-| `db` | PostgreSQL 17 | Persistent data store |
+| `db` | PostgreSQL 18 | Persistent data store |
 | `redis` | Redis | Internal state and caching |
 
 ## Development

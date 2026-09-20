@@ -32,12 +32,6 @@ CLIENT_ID=your_client_id_here
 BOT_TOKEN=your_bot_token_here
 ```
 
-To enable `pk;admin` commands (raising member limits, etc.), also set:
-
-```env
-ADMIN_ROLE=your_admin_role_id_here
-```
-
 2. Build and start the bot and its data services:
 
 ```sh

@@ -100,33 +100,6 @@ public class BotModule: Module
             return client;
         }).AsSelf().SingleInstance();
 
-        // Commands
-        builder.RegisterType<CommandTree>().AsSelf();
-        builder.RegisterType<Admin>().AsSelf();
-        builder.RegisterType<Api>().AsSelf();
-        builder.RegisterType<Autoproxy>().AsSelf();
-        builder.RegisterType<Checks>().AsSelf();
-        builder.RegisterType<Config>().AsSelf();
-        builder.RegisterType<Fun>().AsSelf();
-        builder.RegisterType<Groups>().AsSelf();
-        builder.RegisterType<GroupMember>().AsSelf();
-        builder.RegisterType<Help>().AsSelf();
-        builder.RegisterType<ImportExport>().AsSelf();
-        builder.RegisterType<Member>().AsSelf();
-        builder.RegisterType<MemberAvatar>().AsSelf();
-        builder.RegisterType<MemberEdit>().AsSelf();
-        builder.RegisterType<MemberProxy>().AsSelf();
-        builder.RegisterType<Misc>().AsSelf();
-        builder.RegisterType<ProxiedMessage>().AsSelf();
-        builder.RegisterType<Random>().AsSelf();
-        builder.RegisterType<ServerConfig>().AsSelf();
-        builder.RegisterType<Switch>().AsSelf();
-        builder.RegisterType<System>().AsSelf();
-        builder.RegisterType<SystemEdit>().AsSelf();
-        builder.RegisterType<SystemFront>().AsSelf();
-        builder.RegisterType<SystemLink>().AsSelf();
-        builder.RegisterType<SystemList>().AsSelf();
-
         // Application commands
         builder.RegisterType<ApplicationCommandTree>().AsSelf();
         builder.RegisterType<ApplicationCommandSay>().AsSelf();
@@ -139,31 +112,20 @@ public class BotModule: Module
         builder.RegisterType<MessageCreated>().As<IEventHandler<MessageCreateEvent>>();
         builder.RegisterType<MessageDeleted>().As<IEventHandler<MessageDeleteEvent>>()
             .As<IEventHandler<MessageDeleteBulkEvent>>();
-        builder.RegisterType<MessageEdited>().As<IEventHandler<MessageUpdateEvent>>();
         builder.RegisterType<ReactionAdded>().As<IEventHandler<MessageReactionAddEvent>>();
         builder.RegisterType<InteractionCreated>().As<IEventHandler<InteractionCreateEvent>>();
 
-        // Event handler queue
-        builder.RegisterType<HandlerQueue<MessageCreateEvent>>().AsSelf().SingleInstance();
-        builder.RegisterType<HandlerQueue<MessageReactionAddEvent>>().AsSelf().SingleInstance();
-
         // Bot services
-        builder.RegisterType<EmbedService>().AsSelf().SingleInstance();
-        builder.RegisterType<ProxyService>().AsSelf().SingleInstance();
-        builder.RegisterType<LogChannelService>().AsSelf().SingleInstance();
-        builder.RegisterType<DataFileService>().AsSelf().SingleInstance();
         builder.RegisterType<WebhookExecutorService>().AsSelf().SingleInstance();
         builder.RegisterType<WebhookCacheService>().AsSelf().SingleInstance();
         builder.RegisterType<ShardInfoService>().AsSelf().SingleInstance();
         builder.RegisterType<CpuStatService>().AsSelf().SingleInstance();
         builder.RegisterType<PeriodicStatCollector>().AsSelf().SingleInstance();
         builder.RegisterType<LastMessageCacheService>().AsSelf().SingleInstance();
-        builder.RegisterType<LoggerCleanService>().AsSelf().SingleInstance();
         builder.RegisterType<ErrorMessageService>().AsSelf().SingleInstance();
         builder.RegisterType<CommandMessageService>().AsSelf().SingleInstance();
         builder.RegisterType<InteractionDispatchService>().AsSelf().SingleInstance();
         builder.RegisterType<TtsVoiceService>().AsSelf().SingleInstance();
-        builder.RegisterType<AvatarHostingService>().AsSelf().SingleInstance();
         builder.RegisterType<HttpListenerService>().AsSelf().SingleInstance();
         builder.RegisterType<RuntimeConfigService>().AsSelf().SingleInstance();
 
@@ -176,10 +138,6 @@ public class BotModule: Module
             .As<ISentryEnricher<MessageDeleteBulkEvent>>()
             .As<ISentryEnricher<MessageReactionAddEvent>>()
             .SingleInstance();
-
-        // Proxy stuff
-        builder.RegisterType<ProxyMatcher>().AsSelf().SingleInstance();
-        builder.RegisterType<ProxyTagParser>().AsSelf().SingleInstance();
 
         // Utils
         builder.Register(c => new HttpClient

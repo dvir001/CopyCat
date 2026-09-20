@@ -17,40 +17,28 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
 {
     private readonly Bot _bot;
     private readonly IDiscordCache _cache;
-    private readonly Cluster _cluster;
     private readonly BotConfig _config;
-    private readonly IDatabase _db;
     private readonly LastMessageCacheService _lastMessageCache;
-    private readonly LoggerCleanService _loggerClean;
     private readonly IMetrics _metrics;
-    private readonly ProxyService _proxy;
     private readonly ModelRepository _repo;
-    private readonly DiscordApiClient _rest;
     private readonly ILifetimeScope _services;
-    private readonly CommandTree _tree;
     private readonly PrivateChannelService _dmCache;
     private readonly WebhookExecutorService _webhookExecutor;
 
-    public MessageCreated(LastMessageCacheService lastMessageCache, LoggerCleanService loggerClean,
-                          IMetrics metrics, ProxyService proxy,
-                          CommandTree tree, ILifetimeScope services, IDatabase db, BotConfig config,
+    public MessageCreated(LastMessageCacheService lastMessageCache,
+                          IMetrics metrics,
+                          ILifetimeScope services, BotConfig config,
                           ModelRepository repo, IDiscordCache cache,
-                          Bot bot, Cluster cluster, DiscordApiClient rest, PrivateChannelService dmCache,
+                          Bot bot, PrivateChannelService dmCache,
                           WebhookExecutorService webhookExecutor)
     {
         _lastMessageCache = lastMessageCache;
-        _loggerClean = loggerClean;
         _metrics = metrics;
-        _proxy = proxy;
-        _tree = tree;
         _services = services;
-        _db = db;
         _config = config;
         _repo = repo;
         _cache = cache;
         _bot = bot;
-        _cluster = cluster;
-        _rest = rest;
         _dmCache = dmCache;
         _webhookExecutor = webhookExecutor;
     }
@@ -83,21 +71,13 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
         _metrics.Measure.Meter.Mark(BotMetrics.MessagesReceived);
         _lastMessageCache.AddMessage(evt);
 
-        // if the message was not sent by an user account, only try running log cleanup
+        // CopyCat only reacts to regular user messages (reply pings for /s-sent webhook messages)
         if (evt.Author.Bot || evt.WebhookId != null || evt.Author.System == true)
-        {
-            await TryHandleLogClean(channel, evt);
             return;
-        }
 
-        // Try each handler until we find one that succeeds
-        // only show exceptions to users if the checks above succeed
         try
         {
-            if (await TryHandleCommand(shardId, evt, guild, channel))
-                return;
-
-            if (evt.GuildId != null && !await TryHandleProxy(evt, guild, channel, rootChannel.Id, botPermissions))
+            if (evt.GuildId != null)
                 await TryHandleWebhookReplyPing(evt, guild, channel, rootChannel, botPermissions);
         }
         catch (Exception exc)
@@ -143,79 +123,5 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
             Tts = false,
             Poll = null,
         });
-    }
-
-    private async Task TryHandleLogClean(Channel channel, MessageCreateEvent evt)
-    {
-        if (evt.GuildId == null) return;
-        if (channel.Type != Channel.ChannelType.GuildText) return;
-
-        var guildSettings = await _repo.GetGuild(evt.GuildId!.Value);
-
-        if (guildSettings.LogCleanupEnabled)
-            await _loggerClean.HandleLoggerBotCleanup(evt);
-    }
-
-    private ValueTask<bool> TryHandleCommand(int shardId, MessageCreateEvent evt, Guild? guild, Channel channel)
-    {
-        var content = evt.Content;
-        if (content == null) return new ValueTask<bool>(false);
-
-        // Check for command prefix
-        if (!HasCommandPrefix(content, _config.ClientId, out var cmdStart) || cmdStart == content.Length)
-            return new ValueTask<bool>(false);
-
-        // CopyCat disables legacy text commands (pk;/mention) in favor of slash commands.
-        // Return true so command-shaped messages are consumed and do not enter proxy handling.
-        return new ValueTask<bool>(true);
-    }
-
-    private bool HasCommandPrefix(string message, ulong currentUserId, out int argPos)
-    {
-        // First, try prefixes defined in the config
-        var prefixes = _config.Prefixes ?? BotConfig.DefaultPrefixes;
-        foreach (var prefix in prefixes)
-        {
-            if (!message.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase)) continue;
-
-            argPos = prefix.Length;
-            return true;
-        }
-
-        // Then, check mention prefix (must be the bot user, ofc)
-        argPos = -1;
-        if (DiscordUtils.HasMentionPrefix(message, ref argPos, out var id))
-            return id == currentUserId;
-
-        return false;
-    }
-
-    private async ValueTask<bool> TryHandleProxy(MessageCreateEvent evt, Guild guild, Channel channel, ulong rootChannel, PermissionSet botPermissions)
-    {
-        // Get message context from DB (tracking w/ metrics)
-        MessageContext ctx;
-        using (_metrics.Measure.Timer.Time(BotMetrics.MessageContextQueryTime))
-            ctx = await _repo.GetMessageContext(evt.Author.Id, evt.GuildId ?? default, rootChannel, channel.Id != rootChannel ? channel.Id : default);
-
-        if (ctx.DenyBotUsage)
-            return false;
-
-        try
-        {
-            return await _proxy.HandleIncomingMessage(evt, ctx, guild, channel, true, botPermissions, (_config.Prefixes?[0] ?? BotConfig.DefaultPrefixes[0]));
-        }
-
-        // Catch any failed proxy checks so they get ignored in the global error handler
-        catch (ProxyService.ProxyChecksFailedException) { }
-
-        catch (PKError e)
-        {
-            // User-facing errors, print to the channel properly formatted
-            if (botPermissions.HasFlag(PermissionSet.SendMessages))
-                await _rest.CreateMessage(evt.ChannelId,
-                    new MessageRequest { Content = $"{Emojis.Error} {e.Message}" });
-        }
-
-        return false;
     }
 }

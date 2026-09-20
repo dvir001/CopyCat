@@ -170,12 +170,6 @@ public static class Errors
     public static PKError ProxyTagDoesNotExist(ProxyTag tagToRemove, PKMember member) => new(
         $"That member does not have the proxy tag {tagToRemove.ProxyString.AsCode()}. The member currently has these tags: {member.ProxyTagsString()}");
 
-    public static PKError LegacyAlreadyHasProxyTag(ProxyTag requested, PKMember member, Context ctx) => new(
-        $"This member already has more than one proxy tag set: {member.ProxyTagsString()}\nConsider using the {$"{ctx.DefaultPrefix}member {member.Reference(ctx)} proxy add {requested.ProxyString}".AsCode()} command instead.");
-
-    public static PKError EmptyProxyTags(PKMember member, Context ctx) => new(
-        $"The example proxy `text` is equivalent to having no proxy tags at all, since there are no symbols or brackets on either end. If you'd like to clear your proxy tags, use `{ctx.DefaultPrefix}member {member.Reference(ctx)} proxy clear`.");
-
     public static PKError GenericCancelled() => new("Operation cancelled.");
 
     public static PKError AttachmentTooLarge(int mb) => new(

@@ -3,10 +3,7 @@ using Autofac;
 using Myriad.Cache;
 using Myriad.Extensions;
 using Myriad.Rest;
-using Myriad.Rest.Types;
 using Myriad.Types;
-
-using NodaTime;
 
 using PluralKit.Core;
 
@@ -16,60 +13,13 @@ public class ApplicationCommandProxiedMessage
 {
     private readonly DiscordApiClient _rest;
     private readonly IDiscordCache _cache;
-    private readonly EmbedService _embeds;
     private readonly ModelRepository _repo;
 
-    public ApplicationCommandProxiedMessage(DiscordApiClient rest, IDiscordCache cache, EmbedService embeds,
-                                            ModelRepository repo)
+    public ApplicationCommandProxiedMessage(DiscordApiClient rest, IDiscordCache cache, ModelRepository repo)
     {
         _rest = rest;
         _cache = cache;
-        _embeds = embeds;
         _repo = repo;
-    }
-
-    public async Task QueryMessage(InteractionContext ctx)
-    {
-        var messageId = ctx.Event.Data!.TargetId!.Value;
-        var msg = await ctx.Repository.GetFullMessage(messageId);
-        if (msg == null)
-        {
-            await QueryCommandMessage(ctx);
-            return;
-        }
-
-        var showContent = true;
-        var channel = await _rest.GetChannelOrNull(msg.Message.Channel);
-        if (channel == null)
-            showContent = false;
-
-        var components = new List<MessageComponent>();
-        var guild = await _cache.GetGuild(ctx.GuildId);
-        if (msg.Member != null)
-            components.AddRange(await _embeds.CreateMemberMessageComponents(
-                msg.System,
-                msg.Member,
-                guild,
-                ctx.Config,
-                LookupContext.ByNonOwner,
-                DateTimeZone.Utc
-            ));
-        components.Add(new MessageComponent()
-        {
-            Type = ComponentType.Separator
-        });
-        components.AddRange(await _embeds.CreateMessageInfoMessageComponents(msg, showContent, ctx.Config));
-        await ctx.Reply(components: components.ToArray());
-    }
-
-    private async Task QueryCommandMessage(InteractionContext ctx)
-    {
-        var messageId = ctx.Event.Data!.TargetId!.Value;
-        var msg = await ctx.Repository.GetCommandMessage(messageId);
-        if (msg == null)
-            throw Errors.MessageNotFound(messageId);
-
-        await ctx.Reply(components: await _embeds.CreateCommandMessageInfoMessageComponents(msg, true));
     }
 
     public async Task DeleteMessage(InteractionContext ctx)
@@ -112,66 +62,5 @@ public class ApplicationCommandProxiedMessage
 
         await ctx.Rest.DeleteMessage(channelId, messageId);
         await ctx.Reply($"{Emojis.Success} Message deleted.");
-    }
-
-    public async Task PingMessageAuthor(InteractionContext ctx)
-    {
-        // if the command message was sent by a user account with bot usage disallowed, ignore it
-        var abuse_log = await _repo.GetAbuseLogByAccount(ctx.User.Id);
-        if (abuse_log != null && abuse_log.DenyBotUsage)
-        {
-            await ctx.Defer();
-            return;
-        }
-
-        var messageId = ctx.Event.Data!.TargetId!.Value;
-        var msg = await ctx.Repository.GetFullMessage(messageId);
-        if (msg == null)
-            throw Errors.MessageNotFound(messageId);
-
-        // Check if the "pinger" has permission to send messages in this channel
-        // (if not, PK shouldn't send messages on their behalf)
-        var member = await _rest.GetGuildMember(ctx.GuildId, ctx.User.Id);
-        var requiredPerms = PermissionSet.ViewChannel | PermissionSet.SendMessages;
-        if (member == null || !(await _cache.PermissionsForMemberInChannel(ctx.GuildId, ctx.ChannelId, member)).HasFlag(requiredPerms))
-        {
-            throw new PKError("You do not have permission to send messages in this channel.");
-        }
-        ;
-
-        var config = await _repo.GetSystemConfig(msg.System.Id);
-
-        if (config.PingsEnabled)
-        {
-            // If the system has pings enabled, go ahead
-            await ctx.Respond(InteractionResponse.ResponseType.ChannelMessageWithSource,
-                new InteractionApplicationCommandCallbackData
-                {
-                    Content = $"Psst, **{msg.Member.DisplayName()}** (<@{msg.Message.Sender}>), you have been pinged by <@{ctx.User.Id}>.",
-                    Components = new[]
-                    {
-                        new MessageComponent
-                        {
-                            Type = ComponentType.ActionRow,
-                            Components = new[]
-                            {
-                                new MessageComponent
-                                {
-                                    Style = ButtonStyle.Link,
-                                    Type = ComponentType.Button,
-                                    Label = "Jump",
-                                    Url = msg.Message.JumpLink(),
-                                }
-                            }
-                        }
-                    },
-                    AllowedMentions = new AllowedMentions { Users = new[] { msg.Message.Sender } },
-                    Flags = new() { },
-                });
-        }
-        else
-        {
-            await ctx.Reply($"{Emojis.Error} {msg.Member.DisplayName()}'s system has disabled command pings.");
-        }
     }
 }

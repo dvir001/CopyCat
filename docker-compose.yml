@@ -31,7 +31,6 @@ services:
       - "PluralKit__RedisAddr=redis"
       - "PluralKit__Bot__Token=${BOT_TOKEN}"
       - "PluralKit__Bot__ClientId=${CLIENT_ID}"
-      - "PluralKit__Bot__AdminRole=${ADMIN_ROLE}"
     restart: unless-stopped
     depends_on:
       migrate:

@@ -218,12 +218,6 @@ public static class DiscordUtils
     public static string EventType(this IGatewayEvent evt) =>
         evt.GetType().Name.Replace("Event", "");
 
-    public static async Task<bool> HasReactionPermissions(Context ctx)
-    {
-        var neededPermissions = PermissionSet.AddReactions | PermissionSet.ReadMessageHistory;
-        return (await ctx.BotPermissions & neededPermissions) == neededPermissions;
-    }
-
     public static bool IsValidGuildChannel(Channel channel) =>
         channel.Type is
             Channel.ChannelType.GuildText or

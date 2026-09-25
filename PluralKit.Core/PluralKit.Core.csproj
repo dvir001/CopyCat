@@ -37,7 +37,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.10" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-        <PackageReference Include="NodaTime" Version="3.3.3" />
+        <PackageReference Include="NodaTime" Version="3.3.4" />
         <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.3.0" />
         <PackageReference Include="Npgsql" Version="10.0.3" />
         <PackageReference Include="Npgsql.NodaTime" Version="10.0.3" />

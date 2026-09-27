@@ -5,6 +5,8 @@ public class BotConfig
     public string Token { get; set; }
     public ulong ClientId { get; set; }
 
+    public Dictionary<string, SocialLinkReplacerConfig> SocialLinkReplacers { get; set; } = new();
+
     public int? MaxShardConcurrency { get; set; }
 
     public ClusterSettings? Cluster { get; set; }
@@ -37,4 +39,12 @@ public class BotConfig
         // Node name eg. "pluralkit-3", want to extract the 3. blame k8s :p
         public int NodeIndex => int.Parse(NodeName.Split("-").Last());
     }
+}
+
+public class SocialLinkReplacerConfig
+{
+    public string SourceHosts { get; set; }
+    public string ReplacementHost { get; set; }
+    public string? PathPattern { get; set; }
+    public string? PathReplacement { get; set; }
 }

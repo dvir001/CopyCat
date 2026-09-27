@@ -126,6 +126,7 @@ public class BotModule: Module
         builder.RegisterType<CommandMessageService>().AsSelf().SingleInstance();
         builder.RegisterType<InteractionDispatchService>().AsSelf().SingleInstance();
         builder.RegisterType<TtsVoiceService>().AsSelf().SingleInstance();
+        builder.RegisterType<SocialLinkRewriter>().AsSelf().SingleInstance();
         builder.RegisterType<HttpListenerService>().AsSelf().SingleInstance();
         builder.RegisterType<RuntimeConfigService>().AsSelf().SingleInstance();
 

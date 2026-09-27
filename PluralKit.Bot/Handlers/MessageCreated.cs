@@ -6,6 +6,7 @@ using Myriad.Cache;
 using Myriad.Extensions;
 using Myriad.Gateway;
 using Myriad.Rest;
+using Myriad.Rest.Types;
 using Myriad.Rest.Types.Requests;
 using Myriad.Types;
 
@@ -23,6 +24,8 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
     private readonly ModelRepository _repo;
     private readonly ILifetimeScope _services;
     private readonly PrivateChannelService _dmCache;
+    private readonly DiscordApiClient _rest;
+    private readonly SocialLinkRewriter _socialLinkRewriter;
     private readonly WebhookExecutorService _webhookExecutor;
 
     public MessageCreated(LastMessageCacheService lastMessageCache,
@@ -30,7 +33,8 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
                           ILifetimeScope services, BotConfig config,
                           ModelRepository repo, IDiscordCache cache,
                           Bot bot, PrivateChannelService dmCache,
-                          WebhookExecutorService webhookExecutor)
+                          WebhookExecutorService webhookExecutor, DiscordApiClient rest,
+                          SocialLinkRewriter socialLinkRewriter)
     {
         _lastMessageCache = lastMessageCache;
         _metrics = metrics;
@@ -41,6 +45,8 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
         _bot = bot;
         _dmCache = dmCache;
         _webhookExecutor = webhookExecutor;
+        _rest = rest;
+        _socialLinkRewriter = socialLinkRewriter;
     }
 
     public (ulong?, ulong?) ErrorChannelFor(MessageCreateEvent evt, ulong userId) => (evt.GuildId, evt.ChannelId);
@@ -78,12 +84,43 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
         try
         {
             if (evt.GuildId != null)
+            {
+                await TryEmbedSocialLinks(evt, botPermissions);
                 await TryHandleWebhookReplyPing(evt, guild, channel, rootChannel, botPermissions);
+            }
         }
         catch (Exception exc)
         {
             await _bot.HandleError(this, evt, _services, exc, true);
         }
+    }
+
+    private async Task TryEmbedSocialLinks(MessageCreateEvent evt, PermissionSet botPermissions)
+    {
+        if (!botPermissions.HasFlag(PermissionSet.EmbedLinks))
+            return;
+
+        var links = _socialLinkRewriter.RewriteLinks(evt.Content);
+        if (links.Length == 0)
+            return;
+
+        var content = string.Join('\n', links);
+        if (content.Length > 2000)
+            return;
+
+        await _rest.CreateMessage(evt.ChannelId, new MessageRequest
+        {
+            Content = content,
+            AllowedMentions = new AllowedMentions
+            {
+                Parse = Array.Empty<AllowedMentions.ParseType>(),
+                RepliedUser = false,
+            },
+            MessageReference = botPermissions.HasFlag(PermissionSet.ReadMessageHistory)
+                ? new Message.Reference(evt.GuildId, evt.ChannelId, evt.Id)
+                : null,
+            Flags = Message.MessageFlags.SuppressNotifications,
+        });
     }
 
     private async Task TryHandleWebhookReplyPing(MessageCreateEvent evt, Guild guild, Channel channel,

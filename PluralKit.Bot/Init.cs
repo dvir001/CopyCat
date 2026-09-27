@@ -66,6 +66,13 @@ public class Init
                 return;
             }
 
+            logger.Information("Running database migrations");
+            await MigrationRunner.Run(coreConfig);
+
+            logger.Information("Registering Discord application commands");
+            await ApplicationCommandTree.RegisterGlobalCommands(
+                services.Resolve<DiscordApiClient>(), config.ClientId);
+
             // initialize Redis
             var redis = services.Resolve<RedisService>();
             await redis.InitAsync(coreConfig);

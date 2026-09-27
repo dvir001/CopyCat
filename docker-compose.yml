@@ -1,27 +1,10 @@
 services:
 
-  migrate:
-    image: ghcr.io/${GHCR_OWNER}/copycat:latest
-    environment:
-      - "COPYCAT_MIGRATE_ONLY=true"
-      - "PluralKit__Database=Host=db;Username=postgres;Password=postgres;Database=postgres"
-    command: ["bin/PluralKit.Bot.dll"]
-    depends_on:
-      db:
-        condition: service_healthy
-
-  register-commands:
-    image: ghcr.io/${GHCR_OWNER}/copycat:latest
-    command: ["bin/PluralKit.Bot.dll"]
-    environment:
-      - "COPYCAT_REGISTER_COMMANDS_ONLY=true"
-      - "PluralKit__Bot__Token=${BOT_TOKEN}"
-      - "PluralKit__Bot__ClientId=${CLIENT_ID}"
-    restart: "no"
-
   bot:
     image: ghcr.io/${GHCR_OWNER}/copycat:latest
     command: ["bin/PluralKit.Bot.dll"]
+    env_file:
+      - .env
     volumes:
       - "/data/piper:/app/piper"
       - "/data/cabal:/app/cabal"
@@ -33,8 +16,8 @@ services:
       - "PluralKit__Bot__ClientId=${CLIENT_ID}"
     restart: unless-stopped
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      db:
+        condition: service_healthy
       redis:
         condition: service_started
 

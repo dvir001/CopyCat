@@ -5,6 +5,13 @@ permissions:
   packages: write
 
 on:
+  workflow_dispatch:
+    inputs:
+      no_cache:
+        description: Build without using the Docker layer cache
+        required: false
+        type: boolean
+        default: false
   push:
     branches: [ main ]
     paths:
@@ -44,6 +51,7 @@ jobs:
           context: .
           file: ci/Dockerfile.dotnet
           push: true
+          no-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.no_cache }}
           tags: |
             ${{ steps.image.outputs.name }}:latest
             ${{ steps.image.outputs.name }}:${{ github.sha }}

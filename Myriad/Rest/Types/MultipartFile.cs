@@ -1,4 +1,4 @@
 namespace Myriad.Rest.Types;
 
 public record MultipartFile(string Filename, Stream Data, string? Description, string? Waveform, float? DurationSecs,
-							bool? IsSpoiler = null, string? ContentType = null);
+                            bool? IsSpoiler = null, string? ContentType = null);

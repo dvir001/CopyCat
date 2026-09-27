@@ -124,6 +124,38 @@ public class SocialLinkRewriterTests
         Assert.Equal("See https://embed.example/embed/resolved-key!", content);
     }
 
+    [Fact]
+    public async Task ResolvesNewgroundsPortalLinks()
+    {
+        var handler = new StubHttpMessageHandler(request =>
+        {
+            Assert.Equal(
+                "https://embedez.com/api/v1/providers/combined?q=https%3A%2F%2Fwww.newgrounds.com%2Fportal%2Fview%2F805579",
+                request.RequestUri?.AbsoluteUri);
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"data":{"key":"newgrounds-key"}}"""),
+            };
+        });
+        var rewriter = new SocialLinkRewriter(new BotConfig
+        {
+            SocialLinkReplacers = new Dictionary<string, SocialLinkReplacerConfig>
+            {
+                ["NewgroundsPortal"] = new()
+                {
+                    SourceHosts = "newgrounds.com,*.newgrounds.com",
+                    PathPattern = "^/portal/view/[^/]+",
+                    ResolverUrl = "https://embedez.com/api/v1/providers/combined",
+                    ResolvedUrlTemplate = "https://embedez.com/embed/{key}",
+                },
+            },
+        }, new HttpClient(handler));
+
+        var content = await rewriter.RewriteContentAsync("https://www.newgrounds.com/portal/view/805579");
+
+        Assert.Equal("https://embedez.com/embed/newgrounds-key", content);
+    }
+
     private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responseFactory):
         HttpMessageHandler
     {

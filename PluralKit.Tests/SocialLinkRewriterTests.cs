@@ -77,4 +77,18 @@ public class SocialLinkRewriterTests
 
         Assert.Equal(new[] { "https://fxtwitch.seria.moe/clip/ExampleClip?t=10" }, links);
     }
+
+    [Fact]
+    public void RewritesLinksInsideOriginalContent()
+    {
+        var content = _rewriter.RewriteContent("Look at https://x.com/user/status/123! Great post.");
+
+        Assert.Equal("Look at https://fxtwitter.com/user/status/123! Great post.", content);
+    }
+
+    [Fact]
+    public void ReturnsNullWhenContentHasNoConfiguredLinks()
+    {
+        Assert.Null(_rewriter.RewriteContent("https://example.com/post"));
+    }
 }

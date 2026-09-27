@@ -28,6 +28,27 @@ public class SocialLinkRewriter
                 .Cast<string>()
                 .ToArray();
 
+    public string? RewriteContent(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return null;
+
+        var changed = false;
+        var rewritten = UrlRegex.Replace(content, match =>
+        {
+            var trailingLength = match.Value.Length - match.Value.TrimEnd('.', ',', ';', ':', '!', '?').Length;
+            var link = trailingLength == 0 ? match.Value : match.Value[..^trailingLength];
+            var replacement = Rewrite(link);
+            if (replacement == null)
+                return match.Value;
+
+            changed = true;
+            return replacement + match.Value[^trailingLength..];
+        });
+
+        return changed ? rewritten : null;
+    }
+
     private string? Rewrite(string link)
     {
         if (!Uri.TryCreate(link, UriKind.Absolute, out var uri))

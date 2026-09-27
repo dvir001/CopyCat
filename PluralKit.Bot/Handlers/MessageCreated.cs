@@ -6,8 +6,6 @@ using Myriad.Cache;
 using Myriad.Extensions;
 using Myriad.Gateway;
 using Myriad.Rest;
-using Myriad.Rest.Types;
-using Myriad.Rest.Types.Requests;
 using Myriad.Types;
 
 using PluralKit.Core;
@@ -85,7 +83,8 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
         {
             if (evt.GuildId != null)
             {
-                await TryEmbedSocialLinks(evt, botPermissions);
+                if (await TryEmbedSocialLinks(evt, guild, channel, rootChannel, botPermissions))
+                    return;
                 await TryHandleWebhookReplyPing(evt, guild, channel, rootChannel, botPermissions);
             }
         }
@@ -95,32 +94,55 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
         }
     }
 
-    private async Task TryEmbedSocialLinks(MessageCreateEvent evt, PermissionSet botPermissions)
+    private async Task<bool> TryEmbedSocialLinks(MessageCreateEvent evt, Guild guild, Channel channel,
+                                                 Channel rootChannel, PermissionSet botPermissions)
     {
-        if (!botPermissions.HasFlag(PermissionSet.EmbedLinks))
-            return;
+        if (!botPermissions.HasFlag(PermissionSet.EmbedLinks) ||
+            !botPermissions.HasFlag(PermissionSet.ManageWebhooks) ||
+            !botPermissions.HasFlag(PermissionSet.ManageMessages) ||
+            evt.Attachments.Length > 0 && !botPermissions.HasFlag(PermissionSet.AttachFiles))
+            return false;
 
-        var links = _socialLinkRewriter.RewriteLinks(evt.Content);
-        if (links.Length == 0)
-            return;
+        var content = _socialLinkRewriter.RewriteContent(evt.Content);
+        if (content == null || content.Length > 2000)
+            return false;
 
-        var content = string.Join('\n', links);
-        if (content.Length > 2000)
-            return;
+        var avatarUrl = !string.IsNullOrWhiteSpace(evt.Member?.Avatar)
+            ? $"https://cdn.discordapp.com/guilds/{guild.Id}/users/{evt.Author.Id}/avatars/{evt.Member.Avatar}.png?size=4096"
+            : !string.IsNullOrWhiteSpace(evt.Author.Avatar)
+                ? $"https://cdn.discordapp.com/avatars/{evt.Author.Id}/{evt.Author.Avatar}.png?size=4096"
+                : null;
 
-        await _rest.CreateMessage(evt.ChannelId, new MessageRequest
+        var sent = await _webhookExecutor.ExecuteWebhook(new ProxyRequest
         {
+            GuildId = guild.Id,
+            ChannelId = rootChannel.Id,
+            ThreadId = channel.IsThread() ? channel.Id : null,
+            MessageId = evt.Id,
+            Name = evt.Member?.Nick ?? evt.Author.GlobalName ?? evt.Author.Username,
+            AvatarUrl = avatarUrl,
             Content = content,
-            AllowedMentions = new AllowedMentions
-            {
-                Parse = Array.Empty<AllowedMentions.ParseType>(),
-                RepliedUser = false,
-            },
-            MessageReference = botPermissions.HasFlag(PermissionSet.ReadMessageHistory)
-                ? new Message.Reference(evt.GuildId, evt.ChannelId, evt.Id)
-                : null,
-            Flags = Message.MessageFlags.SuppressNotifications,
+            Attachments = evt.Attachments,
+            FileSizeLimit = guild.FileSizeLimit(),
+            Embeds = Array.Empty<Embed>(),
+            Stickers = evt.StickerItems ?? Array.Empty<Sticker>(),
+            AllowEveryone = false,
+            MessageReference = null,
+            Flags = 0,
+            Tts = false,
+            Poll = null,
         });
+
+        await _repo.AddCommandMessage(new PluralKit.Core.CommandMessage
+        {
+            Mid = sent.Id,
+            Guild = guild.Id,
+            Channel = sent.ChannelId,
+            Sender = evt.Author.Id,
+            OriginalMid = evt.Id,
+        });
+        await _rest.DeleteMessage(evt.ChannelId, evt.Id);
+        return true;
     }
 
     private async Task TryHandleWebhookReplyPing(MessageCreateEvent evt, Guild guild, Channel channel,

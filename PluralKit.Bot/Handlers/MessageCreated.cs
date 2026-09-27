@@ -103,7 +103,7 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
             evt.Attachments.Length > 0 && !botPermissions.HasFlag(PermissionSet.AttachFiles))
             return false;
 
-        var content = _socialLinkRewriter.RewriteContent(evt.Content);
+        var content = await _socialLinkRewriter.RewriteContentAsync(evt.Content);
         if (content == null || content.Length > 2000)
             return false;
 

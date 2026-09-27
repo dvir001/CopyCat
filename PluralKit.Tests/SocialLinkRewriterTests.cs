@@ -1,3 +1,5 @@
+using System.Net;
+
 using PluralKit.Bot;
 
 using Xunit;
@@ -29,7 +31,7 @@ public class SocialLinkRewriterTests
                 PathReplacement = "/clip/$1",
             },
         },
-    });
+    }, new HttpClient());
 
     [Fact]
     public void RewritesConfiguredHostsAndPreservesUrlParts()
@@ -90,5 +92,43 @@ public class SocialLinkRewriterTests
     public void ReturnsNullWhenContentHasNoConfiguredLinks()
     {
         Assert.Null(_rewriter.RewriteContent("https://example.com/post"));
+    }
+
+    [Fact]
+    public async Task ResolvesApiBackedLinks()
+    {
+        var handler = new StubHttpMessageHandler(request =>
+        {
+            Assert.Equal("https://resolver.example/?q=https%3A%2F%2Fwww.snapchat.com%2Fspotlight%2Fabc", request.RequestUri?.AbsoluteUri);
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"data":{"key":"resolved-key"}}"""),
+            };
+        });
+        var rewriter = new SocialLinkRewriter(new BotConfig
+        {
+            SocialLinkReplacers = new Dictionary<string, SocialLinkReplacerConfig>
+            {
+                ["Snapchat"] = new()
+                {
+                    SourceHosts = "snapchat.com,*.snapchat.com",
+                    PathPattern = "^/spotlight/",
+                    ResolverUrl = "https://resolver.example",
+                    ResolvedUrlTemplate = "https://embed.example/embed/{key}",
+                },
+            },
+        }, new HttpClient(handler));
+
+        var content = await rewriter.RewriteContentAsync("See https://www.snapchat.com/spotlight/abc!");
+
+        Assert.Equal("See https://embed.example/embed/resolved-key!", content);
+    }
+
+    private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responseFactory):
+        HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+                                                               CancellationToken cancellationToken) =>
+            Task.FromResult(responseFactory(request));
     }
 }

@@ -156,6 +156,52 @@ public class SocialLinkRewriterTests
         Assert.Equal("https://embedez.com/embed/newgrounds-key", content);
     }
 
+    [Fact]
+    public async Task ResolvesOnlyFansAndFanslyLinks()
+    {
+        var handler = new StubHttpMessageHandler(request =>
+        {
+            Assert.StartsWith("https://embedez.com/api/v1/providers/combined?q=", request.RequestUri?.AbsoluteUri);
+            return request.RequestUri?.AbsoluteUri switch
+            {
+                "https://embedez.com/api/v1/providers/combined?q=https%3A%2F%2Fonlyfans.com%2Falice%2Fposts%2F123456" =>
+                    new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent("""{"data":{"key":"onlyfans-key"}}"""),
+                    },
+                "https://embedez.com/api/v1/providers/combined?q=https%3A%2F%2Fwww.fansly.com%2Fpost%2F987654" =>
+                    new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent("""{"data":{"key":"fansly-key"}}"""),
+                    },
+                _ => throw new Xunit.Sdk.XunitException($"Unexpected resolver URL: {request.RequestUri?.AbsoluteUri}"),
+            };
+        });
+        var rewriter = new SocialLinkRewriter(new BotConfig
+        {
+            SocialLinkReplacers = new Dictionary<string, SocialLinkReplacerConfig>
+            {
+                ["OnlyFans"] = new()
+                {
+                    SourceHosts = "onlyfans.com,*.onlyfans.com",
+                    ResolverUrl = "https://embedez.com/api/v1/providers/combined",
+                    ResolvedUrlTemplate = "https://embedez.com/embed/{key}",
+                },
+                ["Fansly"] = new()
+                {
+                    SourceHosts = "fansly.com,*.fansly.com",
+                    ResolverUrl = "https://embedez.com/api/v1/providers/combined",
+                    ResolvedUrlTemplate = "https://embedez.com/embed/{key}",
+                },
+            },
+        }, new HttpClient(handler));
+
+        var content = await rewriter.RewriteContentAsync(
+            "https://onlyfans.com/alice/posts/123456 and https://www.fansly.com/post/987654");
+
+        Assert.Equal("https://embedez.com/embed/onlyfans-key and https://embedez.com/embed/fansly-key", content);
+    }
+
     private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responseFactory):
         HttpMessageHandler
     {

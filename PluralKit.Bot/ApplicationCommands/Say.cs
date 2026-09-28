@@ -17,12 +17,15 @@ public class ApplicationCommandSay
         RegexOptions.CultureInvariant);
 
     private readonly IDiscordCache _cache;
+    private readonly SocialLinkRewriter _socialLinkRewriter;
     private readonly WebhookExecutorService _webhookExecutor;
 
-    public ApplicationCommandSay(IDiscordCache cache, WebhookExecutorService webhookExecutor)
+    public ApplicationCommandSay(IDiscordCache cache, WebhookExecutorService webhookExecutor,
+                                 SocialLinkRewriter socialLinkRewriter)
     {
         _cache = cache;
         _webhookExecutor = webhookExecutor;
+        _socialLinkRewriter = socialLinkRewriter;
     }
 
     public async Task SendAsInvoker(InteractionContext ctx)
@@ -72,7 +75,9 @@ public class ApplicationCommandSay
 
         // Webhook messages can't create native Discord replies, so mention the replied-to user
         // directly in the content to actually notify them.
-        var content = string.IsNullOrWhiteSpace(text) ? string.Empty : text;
+        var content = string.IsNullOrWhiteSpace(text)
+            ? string.Empty
+            : await _socialLinkRewriter.RewriteContentAsync(text) ?? text;
         if (reply?.PingUserId is { } pingUserId)
             content = string.IsNullOrWhiteSpace(content) ? $"<@{pingUserId}>" : $"<@{pingUserId}> {content}";
 
@@ -440,7 +445,7 @@ public class ApplicationCommandSay
         var reply = await TryBuildReplyEmbed(ctx, replyTarget);
         var embeds = reply == null ? Array.Empty<Embed>() : new[] { reply.Embed };
 
-        var content = text;
+        var content = await _socialLinkRewriter.RewriteContentAsync(text) ?? text;
         if (reply?.PingUserId is { } pingUserId)
             content = string.IsNullOrWhiteSpace(content) ? $"-# <@{pingUserId}>" : $"{content}\n-# <@{pingUserId}>";
 

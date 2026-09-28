@@ -1,6 +1,6 @@
 # CopyCat
 
-CopyCat is a Discord bot that lets you send messages and voice clips as yourself — using your own name and avatar — via Discord's webhook system.
+CopyCat is a Discord bot that lets you send messages and voice clips as yourself using your own name and avatar via Discord's webhook system.
 
 ## Commands
 

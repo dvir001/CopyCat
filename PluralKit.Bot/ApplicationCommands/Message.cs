@@ -11,6 +11,9 @@ namespace PluralKit.Bot;
 
 public class ApplicationCommandProxiedMessage
 {
+    public const string DeleteButtonId = "message-delete";
+    public const string ReplyButtonId = "message-reply";
+
     private readonly DiscordApiClient _rest;
     private readonly IDiscordCache _cache;
     private readonly ModelRepository _repo;
@@ -25,6 +28,20 @@ public class ApplicationCommandProxiedMessage
     public async Task DeleteMessage(InteractionContext ctx)
     {
         var messageId = ctx.Event.Data!.TargetId!.Value;
+
+        await DeleteMessage(ctx, messageId);
+    }
+
+    public async Task DeleteMessageButton(InteractionContext ctx)
+    {
+        var messageId = ctx.Event.Message?.Id
+            ?? throw new PKError("Could not determine the message to delete.");
+
+        await DeleteMessage(ctx, messageId);
+    }
+
+    private async Task DeleteMessage(InteractionContext ctx, ulong messageId)
+    {
 
         // check for command messages
         var cmessage = await ctx.Services.Resolve<CommandMessageService>().GetCommandMessage(messageId);
@@ -53,6 +70,31 @@ public class ApplicationCommandProxiedMessage
         // otherwise, we don't know about this message at all!
         throw Errors.MessageNotFound(messageId);
     }
+
+    public static MessageComponent[] MessageControls() => new[]
+    {
+        new MessageComponent
+        {
+            Type = ComponentType.ActionRow,
+            Components = new[]
+            {
+                new MessageComponent
+                {
+                    Type = ComponentType.Button,
+                    Style = ButtonStyle.Danger,
+                    Emoji = new Emoji { Name = "\ud83d\uddd1\ufe0f" },
+                    CustomId = DeleteButtonId,
+                },
+                new MessageComponent
+                {
+                    Type = ComponentType.Button,
+                    Style = ButtonStyle.Secondary,
+                    Emoji = new Emoji { Name = "\u21a9\ufe0f" },
+                    CustomId = ReplyButtonId,
+                },
+            },
+        },
+    };
 
     internal async Task DeleteMessageInner(InteractionContext ctx, ulong guildId, ulong channelId, ulong messageId, bool isDM = false)
     {

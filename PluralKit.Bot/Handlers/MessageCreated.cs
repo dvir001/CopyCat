@@ -128,6 +128,7 @@ public class MessageCreated: IEventHandler<MessageCreateEvent>
             Stickers = evt.StickerItems ?? Array.Empty<Sticker>(),
             AllowEveryone = false,
             MessageReference = null,
+            Components = ApplicationCommandProxiedMessage.MessageControls(),
             Flags = 0,
             Tts = false,
             Poll = null,

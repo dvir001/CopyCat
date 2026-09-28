@@ -185,6 +185,7 @@ public class ApplicationCommandTts
             Stickers = Array.Empty<Sticker>(),
             AllowEveryone = senderPermissions.HasFlag(PermissionSet.MentionEveryone),
             MessageReference = null,
+            Components = ApplicationCommandProxiedMessage.MessageControls(),
             Flags = 0,
             Tts = false,
             Poll = null,

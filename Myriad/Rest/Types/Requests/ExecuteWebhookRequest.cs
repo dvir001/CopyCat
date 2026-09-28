@@ -12,6 +12,7 @@ public record ExecuteWebhookRequest
     public AttachmentRequest[] Attachments { get; set; }
     public AllowedMentions? AllowedMentions { get; init; }
     public Message.Reference? MessageReference { get; init; }
+    public MessageComponent[]? Components { get; init; }
     public bool? Tts { get; init; }
     public Message.MessageFlags? Flags { get; set; }
     public WebhookPoll? Poll { get; set; }

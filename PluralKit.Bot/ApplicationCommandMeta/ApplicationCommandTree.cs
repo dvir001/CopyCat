@@ -51,6 +51,16 @@ public partial class ApplicationCommandTree
         return null;
     }
 
+    public Task TryHandleMessageComponent(InteractionContext ctx)
+    {
+        if (ctx.CustomId == ApplicationCommandProxiedMessage.DeleteButtonId)
+            return ctx.Execute<ApplicationCommandProxiedMessage>(null, m => m.DeleteMessageButton(ctx));
+        if (ctx.CustomId == ApplicationCommandProxiedMessage.ReplyButtonId)
+            return ctx.Execute<ApplicationCommandSay>(null, m => m.ShowSayReplyModal(ctx));
+
+        return null;
+    }
+
     public Task TryHandleAutocomplete(InteractionContext ctx)
     {
         if (ctx.Event.Data!.Name == Tts.Name)

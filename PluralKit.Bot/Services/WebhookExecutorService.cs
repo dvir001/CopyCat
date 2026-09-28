@@ -47,6 +47,7 @@ public record ProxyRequest
     public Sticker[] Stickers { get; init; }
     public bool AllowEveryone { get; init; }
     public Message.Reference? MessageReference { get; init; }
+    public MessageComponent[]? Components { get; init; }
     public Message.MessageFlags? Flags { get; init; }
     public bool Tts { get; init; }
     public Message.MessagePoll? Poll { get; init; }
@@ -144,6 +145,7 @@ public class WebhookExecutorService
             AvatarUrl = !string.IsNullOrWhiteSpace(req.AvatarUrl) ? req.AvatarUrl : null,
             Embeds = req.Embeds.Concat(attachmentEmbeds).ToArray(),
             Stickers = req.Stickers,
+            Components = req.Components,
             Flags = req.Flags,
             Tts = req.Tts,
         };

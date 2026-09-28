@@ -96,6 +96,7 @@ public class ApplicationCommandSay
             Stickers = Array.Empty<Sticker>(),
             AllowEveryone = senderPermissions.HasFlag(PermissionSet.MentionEveryone),
             MessageReference = null,
+            Components = ApplicationCommandProxiedMessage.MessageControls(),
             Flags = 0,
             Tts = false,
             Poll = null,
@@ -357,7 +358,7 @@ public class ApplicationCommandSay
         if (ctx.Event.GuildId == 0)
             throw new PKError("The Reply as me command only works in servers.");
 
-        var targetMessageId = ctx.Event.Data?.TargetId
+        var targetMessageId = ctx.Event.Data?.TargetId ?? ctx.Event.Message?.Id
             ?? throw new PKError("Could not determine the target message.");
 
         // Newer Discord modals wrap each input in a Label (type 18). The message is a required
@@ -464,6 +465,7 @@ public class ApplicationCommandSay
             Stickers = Array.Empty<Sticker>(),
             AllowEveryone = senderPermissions.HasFlag(PermissionSet.MentionEveryone),
             MessageReference = null,
+            Components = ApplicationCommandProxiedMessage.MessageControls(),
             Flags = 0,
             Tts = false,
             Poll = null,

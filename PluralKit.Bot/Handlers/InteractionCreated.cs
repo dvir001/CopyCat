@@ -52,6 +52,13 @@ public class InteractionCreated: IEventHandler<InteractionCreateEvent>
                 var customId = evt.Data?.CustomId;
                 if (customId == null) return;
 
+                var componentResult = _commandTree.TryHandleMessageComponent(ctx);
+                if (componentResult != null)
+                {
+                    await componentResult;
+                    return;
+                }
+
                 await _interactionDispatch.Dispatch(customId, ctx);
 
                 break;

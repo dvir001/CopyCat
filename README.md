@@ -13,8 +13,8 @@ CopyCat is a Discord bot that lets you send messages and voice clips as yourself
 
 Voices are split into two backends:
 
-- **Piper TTS** — neural, offline voices covering many languages. Models are downloaded to a mounted volume at container startup (`/app/piper`). Only voices whose `.onnx` model file is present on disk appear in autocomplete.
-- **Python bridge** — Morshu (MorshuTalk) and CABAL (TiberianSunCABAL-Talk). Require their vendor repos to be cloned into `Tools/Tts/vendors/` inside the container. Only appear in autocomplete when their vendor directory is found.
+- **Piper TTS** - neural, offline voices covering many languages. Models are downloaded to a mounted volume at container startup (`/app/piper`). Only voices whose `.onnx` model file is present on disk appear in autocomplete.
+- **Python bridge** - Morshu (MorshuTalk) and CABAL (TiberianSunCABAL-Talk). Require their vendor repos to be cloned into `Tools/Tts/vendors/` inside the container. Only appear in autocomplete when their vendor directory is found.
 
 ## Self-hosting
 
@@ -73,10 +73,10 @@ The directory is bind-mounted into the container at `/app/cabal`. Without these 
 
 ### Data storage
 
-- **PostgreSQL** — all persistent data, stored in `/data/db` on the host.
-- **Redis** — internal state and transient data.
-- **Piper voices** — model files in `/data/piper` on the host (mounted into the container at `/app/piper`).
-- **CABAL audio** — `.aud` game audio files in `/data/cabal` on the host (mounted into the container at `/app/cabal`). Must be supplied manually (see above).
+- **PostgreSQL** - all persistent data, stored in `/data/db` on the host.
+- **Redis** - internal state and transient data.
+- **Piper voices** - model files in `/data/piper` on the host (mounted into the container at `/app/piper`).
+- **CABAL audio** - `.aud` game audio files in `/data/cabal` on the host (mounted into the container at `/app/cabal`). Must be supplied manually (see above).
 
 PostgreSQL major versions do not share data directories. Before upgrading an existing PostgreSQL 17 deployment, back up and restore the database into PostgreSQL 18 or migrate it with `pg_upgrade`.
 

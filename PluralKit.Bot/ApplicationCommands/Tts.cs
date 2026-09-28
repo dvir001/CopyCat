@@ -16,14 +16,17 @@ public class ApplicationCommandTts
         RegexOptions.CultureInvariant);
 
     private readonly IDiscordCache _cache;
+    private readonly SocialLinkRewriter _socialLinkRewriter;
     private readonly WebhookExecutorService _webhookExecutor;
     private readonly TtsVoiceService _tts;
 
-    public ApplicationCommandTts(IDiscordCache cache, WebhookExecutorService webhookExecutor, TtsVoiceService tts)
+    public ApplicationCommandTts(IDiscordCache cache, WebhookExecutorService webhookExecutor, TtsVoiceService tts,
+                                 SocialLinkRewriter socialLinkRewriter)
     {
         _cache = cache;
         _webhookExecutor = webhookExecutor;
         _tts = tts;
+        _socialLinkRewriter = socialLinkRewriter;
     }
 
     public async Task SendAsInvoker(InteractionContext ctx)
@@ -160,7 +163,7 @@ public class ApplicationCommandTts
         // <@pingUserId> must appear in message content for Discord to send the notification ping.
         // Keep it as a small -# footnote so it doesn't clutter the visible message text.
         // The mention is also included in the embed description for a cleaner visual (see TryBuildReplyEmbed).
-        var content = text;
+        var content = await _socialLinkRewriter.RewriteContentAsync(text) ?? text;
         if (reply?.PingUserId is { } pingUserId)
             content = $"{content}\n-# <@{pingUserId}>";
 

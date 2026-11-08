@@ -47,6 +47,7 @@ public class SocialLinkReplacerConfig
     public string ReplacementHost { get; set; }
     public string? PathPattern { get; set; }
     public string? PathReplacement { get; set; }
+    public bool IncludeSubdomainInPath { get; set; }
     public string? ResolverUrl { get; set; }
     public string? ResolvedUrlTemplate { get; set; }
 }

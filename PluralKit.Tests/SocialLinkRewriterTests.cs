@@ -30,6 +30,12 @@ public class SocialLinkRewriterTests
                 PathPattern = "^/([^/]+)",
                 PathReplacement = "/clip/$1",
             },
+            ["Tumblr"] = new()
+            {
+                SourceHosts = "tumblr.com,*.tumblr.com",
+                ReplacementHost = "pb.bloat.cat",
+                IncludeSubdomainInPath = true,
+            },
         },
     }, new HttpClient());
 
@@ -78,6 +84,26 @@ public class SocialLinkRewriterTests
         var links = _rewriter.RewriteLinks("https://clips.twitch.tv/ExampleClip?t=10");
 
         Assert.Equal(new[] { "https://fxtwitch.seria.moe/clip/ExampleClip?t=10" }, links);
+    }
+
+    [Fact]
+    public void RewritesTumblrSubdomainAsPathPrefix()
+    {
+        var links = _rewriter.RewriteLinks(
+            "https://staff.tumblr.com/post/123/announcement?source=abc#details");
+
+        Assert.Equal(new[]
+        {
+            "https://pb.bloat.cat/staff/post/123/announcement?source=abc#details",
+        }, links);
+    }
+
+    [Fact]
+    public void DoesNotTreatTumblrRootHostsAsBlogSubdomains()
+    {
+        var links = _rewriter.RewriteLinks("https://tumblr.com/blog/staff https://www.tumblr.com/blog/staff");
+
+        Assert.Equal(new[] { "https://pb.bloat.cat/blog/staff" }, links);
     }
 
     [Fact]

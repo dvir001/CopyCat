@@ -107,6 +107,17 @@ public class SocialLinkRewriterTests
     }
 
     [Fact]
+    public async Task DoesNotRewriteTumblrMediaLinks()
+    {
+        const string mediaUrl =
+            "https://64.media.tumblr.com/37de4023eac6a47e94a2d9473c63905c/tumblr_p2eugysRBE1vbbcoto5_400.gif";
+
+        Assert.Empty(_rewriter.RewriteLinks(mediaUrl));
+        Assert.Null(_rewriter.RewriteContent(mediaUrl));
+        Assert.Null(await _rewriter.RewriteContentAsync(mediaUrl));
+    }
+
+    [Fact]
     public void RewritesLinksInsideOriginalContent()
     {
         var content = _rewriter.RewriteContent("Look at https://x.com/user/status/123! Great post.");

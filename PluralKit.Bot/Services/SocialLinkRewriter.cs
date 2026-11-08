@@ -90,6 +90,9 @@ public class SocialLinkRewriter
         if (!Uri.TryCreate(link, UriKind.Absolute, out var uri))
             return null;
 
+        if (IsTumblrMediaHost(uri.Host))
+            return null;
+
         var replacer = _replacers.FirstOrDefault(candidate => candidate.Matches(uri));
         if (replacer?.ReplacementHost == null)
             return null;
@@ -106,6 +109,9 @@ public class SocialLinkRewriter
     private async Task<string?> RewriteAsync(string link, CancellationToken cancellationToken)
     {
         if (!Uri.TryCreate(link, UriKind.Absolute, out var uri))
+            return null;
+
+        if (IsTumblrMediaHost(uri.Host))
             return null;
 
         var replacer = _replacers.FirstOrDefault(candidate => candidate.Matches(uri));
@@ -138,6 +144,10 @@ public class SocialLinkRewriter
             return null;
         }
     }
+
+    private static bool IsTumblrMediaHost(string host) =>
+        host.Equals("media.tumblr.com", StringComparison.OrdinalIgnoreCase) ||
+        host.EndsWith(".media.tumblr.com", StringComparison.OrdinalIgnoreCase);
 
     private static Replacer? CreateReplacer(SocialLinkReplacerConfig config)
     {

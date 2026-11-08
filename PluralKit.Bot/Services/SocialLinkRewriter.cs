@@ -97,7 +97,7 @@ public class SocialLinkRewriter
         var builder = new UriBuilder(uri)
         {
             Host = replacer.ReplacementHost,
-            Path = replacer.RewritePath(uri.AbsolutePath),
+            Path = replacer.RewritePath(uri),
             Port = -1,
         };
         return builder.Uri.AbsoluteUri;
@@ -171,7 +171,8 @@ public class SocialLinkRewriter
             return null;
 
         return new Replacer(sourceHosts, hasReplacementHost ? replacementHost : null, pathRegex,
-            config.PathReplacement, hasResolver ? resolverUrl : null, config.ResolvedUrlTemplate);
+            config.PathReplacement, config.IncludeSubdomainInPath, hasResolver ? resolverUrl : null,
+            config.ResolvedUrlTemplate);
     }
 
     private static bool TryNormalizeHost(string? value, out string host)
@@ -189,7 +190,7 @@ public class SocialLinkRewriter
     }
 
     private record Replacer(string[] SourceHosts, string? ReplacementHost, Regex? PathRegex, string? PathReplacement,
-                            Uri? ResolverUrl, string? ResolvedUrlTemplate)
+                            bool IncludeSubdomainInPath, Uri? ResolverUrl, string? ResolvedUrlTemplate)
     {
         public bool Matches(Uri uri) =>
             (PathRegex == null || PathRegex.IsMatch(uri.AbsolutePath)) &&
@@ -198,10 +199,24 @@ public class SocialLinkRewriter
                     ? uri.Host.EndsWith(sourceHost[1..], StringComparison.OrdinalIgnoreCase)
                     : uri.Host.Equals(sourceHost, StringComparison.OrdinalIgnoreCase));
 
-        public string RewritePath(string path) =>
-            PathRegex != null && PathReplacement != null
-                ? PathRegex.Replace(path, PathReplacement)
-                : path;
+        public string RewritePath(Uri uri)
+        {
+            var path = PathRegex != null && PathReplacement != null
+                ? PathRegex.Replace(uri.AbsolutePath, PathReplacement)
+                : uri.AbsolutePath;
+
+            if (!IncludeSubdomainInPath)
+                return path;
+
+            var wildcardSourceHost = SourceHosts.FirstOrDefault(sourceHost =>
+                sourceHost.StartsWith("*.", StringComparison.Ordinal) &&
+                uri.Host.EndsWith(sourceHost[1..], StringComparison.OrdinalIgnoreCase));
+            if (wildcardSourceHost == null)
+                return path;
+
+            var subdomain = uri.Host[..^wildcardSourceHost[1..].Length];
+            return subdomain.Equals("www", StringComparison.OrdinalIgnoreCase) ? path : $"/{subdomain}{path}";
+        }
     }
 
     private record ResolverResponse(ResolverResponseData Data);

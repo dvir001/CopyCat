@@ -39,8 +39,8 @@
         <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
         <PackageReference Include="NodaTime" Version="3.3.7" />
         <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.3.0" />
-        <PackageReference Include="Npgsql" Version="10.0.3" />
-        <PackageReference Include="Npgsql.NodaTime" Version="10.0.3" />
+        <PackageReference Include="Npgsql" Version="11.0.0" />
+        <PackageReference Include="Npgsql.NodaTime" Version="11.0.0" />
         <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
         <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
         <PackageReference Include="Serilog.NodaTime" Version="3.0.0" />
